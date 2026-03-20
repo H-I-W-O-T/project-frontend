@@ -1,10 +1,11 @@
+// Layout.tsx
 import { useState } from 'react';
+import { useOutlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 
 interface LayoutProps {
-  children: React.ReactNode;
   userType: 'donor' | 'manager' | 'agent';
   userName: string;
   userAvatar?: string;
@@ -13,7 +14,6 @@ interface LayoutProps {
 }
 
 export const Layout = ({
-  children,
   userType,
   userName,
   userAvatar,
@@ -21,6 +21,7 @@ export const Layout = ({
   showFooter = true,
 }: LayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const outlet = useOutlet(); // Get the nested routes
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -44,7 +45,7 @@ export const Layout = ({
 
         <main className="flex-1 overflow-x-auto">
           <div className="container-padding py-6">
-            {children}
+            {outlet}
           </div>
         </main>
       </div>
