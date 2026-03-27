@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOffline } from '../hooks/useOffline';
 import { agentService } from '../services/agentService';
+import { Spinner } from '../../../shared/components/Common';
 
 const Dashboard: React.FC = () => {
   const { isOnline, queueSize, pendingCount } = useOffline();
@@ -27,7 +28,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+         <Spinner/>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
         </div>
       </div>

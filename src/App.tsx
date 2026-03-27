@@ -22,8 +22,8 @@ function App() {
               />
             }
           >
-            {/* <Route path="donor/*" element={<DonorModule />} />
-            <Route index element={<Navigate to="/donor/dashboard" />} /> */}
+            <Route path="donor/*" element={<DonorModule />} />
+            <Route index element={<Navigate to="/donor/dashboard" />} />
             <Route path="agent/*" element={<AgentModule />} />
             <Route index element={<Navigate to="/agent/dashboard" />} />
           </Route>

@@ -1,6 +1,7 @@
 // pages/History.tsx
 import React, { useState, useEffect } from 'react';
 import { useDistribution } from '../hooks/useDistribution';
+import { Spinner } from '../../../shared/components/Common';
 
 const History: React.FC = () => {
   const { history, loading, error } = useDistribution();
@@ -18,7 +19,7 @@ const History: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <Spinner/>
           <p className="mt-4 text-gray-600">Loading history...</p>
         </div>
       </div>
