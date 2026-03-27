@@ -74,18 +74,6 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
 
   const sidebarContent = (
     <aside className="h-full bg-white shadow-lg border-r border-gray-200 flex flex-col">
-      {/* Sidebar Header */}
-      <div className="p-4 border-b border-gray-200 bg-gradient-brand">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary-cyan rounded-lg flex items-center justify-center">
-            <span className="text-primary-dark font-bold text-sm">H</span>
-          </div>
-          <div>
-            <p className="text-white font-bold text-sm">HIWOT</p>
-            <p className="text-primary-light text-xs">v1.0.0</p>
-          </div>
-        </div>
-      </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -151,7 +139,7 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden animate-fade-in"
+        className="fixed inset-0 bg-transparent bg-opacity-50 z-40 lg:hidden animate-fade-in"
         onClick={onClose}
       />
       {/* Drawer */}

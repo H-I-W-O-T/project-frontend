@@ -31,23 +31,25 @@ export const Header = ({ userType, userName, userAvatar, onMenuClick, onLogout }
     <header className="bg-gradient-brand text-white shadow-lg sticky top-0 z-40">
       <div className="container-padding py-3">
         <div className="flex items-center justify-between">
-          {/* Mobile Menu Button */}
-          <button
-            onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-primary-dark transition-colors"
-            aria-label="Toggle menu"
-          >
-            <Menu size={24} />
-          </button>
+          <div className='flex space-x-4'>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-lg hover:bg-primary-dark transition-colors"
+              aria-label="Toggle menu"
+            >
+              <Menu size={24} />
+            </button>
 
-          {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary-cyan rounded-lg flex items-center justify-center shadow-md">
-              <span className="text-primary-dark font-bold text-xl">H</span>
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold tracking-tight">HIWOT</h1>
-              <p className="text-xs text-primary-light">Humanitarian Coordination Protocol</p>
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-primary-cyan rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-primary-dark font-bold text-xl">H</span>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold tracking-tight">HIWOT</h1>
+                <p className="text-xs text-primary-light">Humanitarian Coordination Protocol</p>
+              </div>
             </div>
           </div>
 

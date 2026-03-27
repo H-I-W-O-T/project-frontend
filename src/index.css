@@ -10,6 +10,9 @@
 
 @import "tailwindcss";
 
+/* In your main.css or index.css */
+@import 'leaflet/dist/leaflet.css';
+
 /* ============================================
    CUSTOM THEME CONFIGURATION
    ============================================ */
