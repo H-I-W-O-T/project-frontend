@@ -28,6 +28,8 @@ function App() {
             <Route path="agent/*" element={<AgentModule />} />
             <Route index element={<Navigate to="/agent/dashboard" />} />
             <Route path="manager/*" element={<ManagerModule />} />
+            <Route index element={<Navigate to="/manager/dashboard" />} />
+
           </Route>
         </Routes>
       </BrowserRouter>
