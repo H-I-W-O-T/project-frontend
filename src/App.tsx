@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './shared/components/Common/ToastContainer';
 import { Layout } from './shared/components/Layout/Layout';
 import { DonorModule } from './modules/donor';
+import { ManagerModule } from './modules/manager';
 
 function App() {
   // For demo, we'll set user as donor
@@ -23,6 +24,7 @@ function App() {
           >
             <Route path="donor/*" element={<DonorModule />} />
             <Route index element={<Navigate to="/donor/dashboard" />} />
+            <Route path="manager/*" element={<ManagerModule />} />
           </Route>
         </Routes>
       </BrowserRouter>
