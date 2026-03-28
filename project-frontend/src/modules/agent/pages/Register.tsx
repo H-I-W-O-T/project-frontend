@@ -76,8 +76,9 @@ const Register: React.FC = () => {
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
               <input
+                id="fullName"
                 type="text"
                 required
                 value={formData.fullName}
@@ -87,8 +88,9 @@ const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">National ID</label>
+              <label htmlFor="nationalId" className="block text-sm font-medium text-gray-700">National ID</label>
               <input
+                id="nationalId"
                 type="text"
                 required
                 value={formData.nationalId}
@@ -98,8 +100,9 @@ const Register: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Phone Number</label>
               <input
+                id="phoneNumber"
                 type="tel"
                 required
                 value={formData.phoneNumber}

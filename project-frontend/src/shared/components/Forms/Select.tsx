@@ -108,7 +108,6 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             disabled={disabled}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            aria-invalid={hasError}
             aria-describedby={
               hasError ? `${selectId}-error` : helper ? `${selectId}-helper` : undefined
             }

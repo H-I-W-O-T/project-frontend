@@ -119,16 +119,16 @@
 /* Text gradient - for headings */
 .text-gradient {
   background: linear-gradient(135deg, #003333 0%, #006666 50%, #00CCCC 100%);
-  background-clip: text;
   -webkit-background-clip: text;
+  background-clip: text;
   color: transparent;
 }
 
 /* Alternative text gradient - cyan to teal */
 .text-gradient-cyan {
   background: linear-gradient(135deg, #00FFFF 0%, #00CCCC 50%, #009999 100%);
-  background-clip: text;
   -webkit-background-clip: text;
+  background-clip: text;
   color: transparent;
 }
 

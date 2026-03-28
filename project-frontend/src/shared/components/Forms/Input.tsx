@@ -133,7 +133,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             readOnly={readOnly}
             placeholder={placeholder}
-            aria-invalid={hasError}
             aria-describedby={
               hasError ? `${inputId}-error` : helper ? `${inputId}-helper` : undefined
             }

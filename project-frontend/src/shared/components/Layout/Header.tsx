@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Menu, Bell, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Menu, Bell, User, LogOut, Settings, ChevronDown, Wallet } from 'lucide-react';
+import { useWallet } from '../../../contexts/Wallet';
 
 interface HeaderProps {
   userType: 'donor' | 'manager' | 'agent';
@@ -12,6 +13,9 @@ interface HeaderProps {
 export const Header = ({ userType, userName, userAvatar, onMenuClick, onLogout }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  
+  // Wallet Context for connecting Hiwot Protocol
+  const { isConnected, isConnecting, publicKey, usdcBalance, connect, disconnect } = useWallet();
 
   const userTypeLabels = {
     donor: 'Donor',
@@ -54,7 +58,32 @@ export const Header = ({ userType, userName, userAvatar, onMenuClick, onLogout }
           </div>
 
           {/* Right Side Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
+            
+            {/* Wallet Section */}
+            <div className="hidden sm:flex items-center">
+              {isConnected ? (
+                <div className="flex items-center bg-primary-dark bg-opacity-40 rounded-lg overflow-hidden border border-primary/20">
+                  <div className="px-3 py-1.5 text-sm font-medium border-r border-primary/20 flex items-center space-x-1">
+                    <Wallet size={14} className="text-primary-cyan mr-1" />
+                    <span>{usdcBalance.toFixed(2)} USDC</span>
+                  </div>
+                  <div className="px-3 py-1.5 text-sm bg-primary-dark/60 text-primary-cyan cursor-pointer hover:bg-primary-dark/80 transition-colors" title="Disconnect Wallet" onClick={disconnect}>
+                    {publicKey?.substring(0, 4)}...{publicKey?.substring(publicKey.length - 4)}
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={connect}
+                  disabled={isConnecting}
+                  className="flex items-center space-x-2 bg-primary-cyan text-primary-dark cursor-pointer px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-white transition-colors disabled:opacity-75"
+                >
+                  <Wallet size={16} />
+                  <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+                </button>
+              )}
+            </div>
+
             {/* User Type Badge */}
             <div className="hidden md:block px-3 py-1 rounded-full bg-primary-dark bg-opacity-50 text-sm">
               {userTypeLabels[userType]}
