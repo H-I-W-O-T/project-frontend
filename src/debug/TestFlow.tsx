@@ -8,6 +8,7 @@ export const TestFlow = () => {
   const wallet = useWallet();
 
   const runTest = async () => {
+    
     try {
       // -----------------------------
       // 1. CONNECT WALLET
@@ -27,9 +28,9 @@ export const TestFlow = () => {
       // 2. GENERATE TEST DATA
       // -----------------------------
       const nullifier = "user-" + Math.random();
-      const programId = "program-001";
-      const batchId = "batch-001";
-      const metadata = "meta-001";
+      const programId = "program-" + Math.random();
+      const batchId = "batch-" + Math.random();
+      const metadata = "meta-" + Math.random();
 
       // -----------------------------
       // 3. REGISTER BENEFICIARY
