@@ -26,7 +26,7 @@ export const TestFlow = () => {
       // -----------------------------
       // 2. GENERATE TEST DATA
       // -----------------------------
-      const nullifier = "user-123";
+      const nullifier = "user-" + Math.random();
       const programId = "program-001";
       const batchId = "batch-001";
       const metadata = "meta-001";

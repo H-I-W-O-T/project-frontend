@@ -1,10 +1,9 @@
-// src/shared/hooks/useWallet.ts
-
 import { useState } from "react";
 import {
   Contract,
   TransactionBuilder,
   rpc,
+  Transaction,
 } from "@stellar/stellar-sdk";
 
 import {
@@ -18,117 +17,141 @@ import { NETWORK } from "../api/contracts/config";
 
 export const useWallet = () => {
   const [publicKey, setPublicKey] = useState<string | null>(null);
-
   const server = new rpc.Server(NETWORK.RPC_URL);
 
   // -------------------------------
-  // CONNECT WALLET
+  // 1. CONNECT WALLET
   // -------------------------------
   const connectWallet = async () => {
-    const connected = await isConnected();
+    try {
+      const connected = await isConnected();
+      if (!connected) await requestAccess();
 
-    if (!connected) {
-      await requestAccess();
+      const result = await getAddress();
+      if (!result?.address) {
+        throw new Error("Freighter locked or access denied.");
+      }
+
+      setPublicKey(result.address);
+      console.log("✅ Connected wallet:", result.address);
+      return result.address;
+    } catch (error) {
+      console.error("Connection error:", error);
+      throw error;
     }
-
-    const result = await getAddress();
-
-    if (!result || !result.address) {
-      throw new Error("Failed to get wallet address");
-    }
-
-    const address = result.address;
-
-    setPublicKey(address);
-
-    console.log("✅ Connected wallet:", address);
-
-    return address;
   };
 
   // -------------------------------
-  // CALL CONTRACT (CORE ENGINE)
+  // 2. CALL CONTRACT (CORE ENGINE)
   // -------------------------------
   const callContract = async ({
     contractId,
     method,
     args,
+    address, // Accept explicit address to avoid React state lag
   }: {
     contractId: string;
     method: string;
     args: any[];
+    address?: string;
   }) => {
-    if (!publicKey) {
-      throw new Error("Wallet not connected");
-    }
+    const activeAddress = address || publicKey;
+    if (!activeAddress) throw new Error("Wallet not connected");
 
     try {
-      // -------------------------------
-      // LOAD ACCOUNT
-      // -------------------------------
-      const sourceAccount = await server.getAccount(publicKey);
+      // A. Load Account
+      const sourceAccount = await server.getAccount(activeAddress);
 
-      const contract = new Contract(contractId);
-
-      // -------------------------------
-      // BUILD TRANSACTION
-      // -------------------------------
-      const tx = new TransactionBuilder(sourceAccount, {
-        fee: "100",
+      // B. Build Skeleton Transaction
+      // We cast to 'any' then 'Transaction' to satisfy TS while keeping methods
+      let tx = new TransactionBuilder(sourceAccount, {
+        fee: "1000", // Soroban requires higher base fees
         networkPassphrase: NETWORK.NETWORK_PASSPHRASE,
       })
-        .addOperation(contract.call(method, ...args))
+        .addOperation(new Contract(contractId).call(method, ...args))
         .setTimeout(30)
-        .build();
+        .build() as unknown as Transaction;
 
-      // -------------------------------
-      // SIMULATE
-      // -------------------------------
+      // C. Simulate
+    //   const sim = await server.simulateTransaction(tx);
+    //   if (rpc.Api.isSimulationError(sim)) {
+    //     console.error("❌ Simulation Failed:", sim.error);
+    //     throw new Error(`Simulation failed: ${sim.error}`);
+    //   }
+
+      // D. ASSEMBLE (v14.6.1 Re-hydration Fix)
       const sim = await server.simulateTransaction(tx);
-
       if (rpc.Api.isSimulationError(sim)) {
-        console.error("❌ Simulation failed:", sim);
-        throw new Error("Simulation failed");
+        console.error("❌ Simulation Failed:", sim.error);
+        throw new Error(`Simulation failed: ${sim.error}`);
       }
 
-      // -------------------------------
-      // ASSEMBLE (returns builder)
-      // -------------------------------
+      // 1. Get the assembled transaction from the RPC
       const assembledTx = rpc.assembleTransaction(tx, sim);
 
-      // -------------------------------
-      // BUILD FINAL TRANSACTION
-      // -------------------------------
-      const finalTx = assembledTx.build();
+      // 2. FORCE RE-HYDRATION: 
+      // If assembledTx.toXDR() is missing, we cast to 'any' to get the 
+      // internal XDR string, then build a NEW Transaction object that 
+      // definitely has the .toXDR() method.
+      const readyToSignTx = TransactionBuilder.fromXDR(
+        (assembledTx as any).toXDR(), 
+        NETWORK.NETWORK_PASSPHRASE
+      ) as Transaction;
 
-      // -------------------------------
-      // SIGN WITH FREIGHTER
-      // -------------------------------
-      const signed = await signTransaction(finalTx.toXDR(), {
+      // E. SIGN WITH FREIGHTER
+      console.log("Pushing to Freighter...");
+      const signedResponse = await signTransaction(readyToSignTx.toXDR(), {
         networkPassphrase: NETWORK.NETWORK_PASSPHRASE,
       });
 
-      if (!signed || !signed.signedTxXdr) {
-        throw new Error("Signing failed");
-      }
+      const signedXdr = typeof signedResponse === "string" 
+        ? signedResponse 
+        : signedResponse?.signedTxXdr;
 
-      const signedTx = TransactionBuilder.fromXDR(
-        signed.signedTxXdr,
-        NETWORK.NETWORK_PASSPHRASE
+      if (!signedXdr) throw new Error("Signing failed or cancelled");
+
+      // F. Submit to Network
+      const submission = await server.sendTransaction(
+        TransactionBuilder.fromXDR(signedXdr, NETWORK.NETWORK_PASSPHRASE)
       );
 
-      // -------------------------------
-      // SEND TRANSACTION
-      // -------------------------------
-      const result = await server.sendTransaction(signedTx);
+      if (submission.status !== "PENDING") {
+        throw new Error(`Submission Error: ${JSON.stringify(submission)}`);
+      }
 
-      console.log("✅ TX SUCCESS:", result);
+      console.log("⏳ Transaction Pending. Polling for result...", submission.hash);
 
-      return result;
+      // G. Poll for Ledger Confirmation
+      // This is vital for your TestFlow to prevent Sequence Number errors
+      return await pollTransactionStatus(submission.hash);
     } catch (err) {
       console.error("❌ Contract call failed:", err);
       throw err;
     }
+  };
+
+  // -------------------------------
+  // 3. HELPER: POLL FOR STATUS
+  // -------------------------------
+  const pollTransactionStatus = async (hash: string) => {
+    let attempts = 0;
+    while (attempts < 20) {
+      const response = await server.getTransaction(hash);
+      
+      if (response.status === "SUCCESS") {
+        console.log("✅ Transaction Confirmed on Ledger");
+        return response;
+      } 
+      
+      if (response.status === "FAILED") {
+        throw new Error("Transaction failed on-chain.");
+      }
+
+      // Wait 2 seconds before checking again
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      attempts++;
+    }
+    throw new Error("Transaction polling timed out (40s+)");
   };
 
   return {

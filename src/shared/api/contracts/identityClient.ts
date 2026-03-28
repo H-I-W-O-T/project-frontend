@@ -1,30 +1,23 @@
-import { CONTRACTS } from "./config";
+// identityClient.ts
+import { nativeToScVal } from "@stellar/stellar-sdk";
 import { scAddress } from "./utils";
 import { stringToBytes32 } from "./encoder";
+import { CONTRACTS } from "./config";
 
 export const identityClient = (wallet: any) => {
-  const contractId = CONTRACTS.IDENTITY;
-
   return {
-    async register(agent: string, nullifier: string, metadataHash: string) {
+    async register(address: string, nullifier: string, metadataHash: string) {
+      const nullifierBytes = await stringToBytes32(nullifier);
+      const metaBytes = await stringToBytes32(metadataHash);
+
       return wallet.callContract({
-        contractId,
+        address,
+        contractId: CONTRACTS.IDENTITY,
         method: "register",
         args: [
-          scAddress(agent),
-          await stringToBytes32(nullifier),
-          await stringToBytes32(metadataHash),
-        ],
-      });
-    },
-
-    async verify(agent: string, nullifier: string) {
-      return wallet.callContract({
-        contractId,
-        method: "verify",
-        args: [
-          scAddress(agent),
-          await stringToBytes32(nullifier),
+          scAddress(address),
+          nativeToScVal(nullifierBytes, { type: "bytes" }), // 32-byte fixed array
+          nativeToScVal(metaBytes, { type: "bytes" }),      // 32-byte fixed array
         ],
       });
     },

@@ -1,11 +1,10 @@
-import { nativeToScVal } from "@stellar/stellar-sdk";
-
-export const stringToBytes32 = async (input: string) => {
+// encoder.ts
+export const stringToBytes32 = async (input: string): Promise<Uint8Array> => {
   if (!input) throw new Error("Invalid Bytes input");
 
   const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
 
-  const hash = await crypto.subtle.digest("SHA-256", data);
-
-  return nativeToScVal(new Uint8Array(hash), { type: "bytes" });
+  // Return the raw Uint8Array (32 bytes)
+  return new Uint8Array(hashBuffer);
 };

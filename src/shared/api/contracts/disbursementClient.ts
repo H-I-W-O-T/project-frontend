@@ -1,11 +1,6 @@
+import { nativeToScVal } from "@stellar/stellar-sdk";
 import { CONTRACTS } from "./config";
-import {
-  scAddress,
-  scI128,
-  scU32,
-  scU64,
-  scVec,
-} from "./utils";
+import { scAddress, scI128, scU32, scU64 } from "./utils";
 import { stringToBytes32 } from "./encoder";
 
 export const disbursementClient = (wallet: any) => {
@@ -13,7 +8,7 @@ export const disbursementClient = (wallet: any) => {
 
   return {
     async createProgram(
-      donor: string,
+      address: string, // Pass address explicitly
       programId: string,
       amountPerPerson: number,
       totalBudget: number,
@@ -23,15 +18,16 @@ export const disbursementClient = (wallet: any) => {
       endTime: number
     ) {
       return wallet.callContract({
+        address, // Send to wallet hook
         contractId,
         method: "create_program",
         args: [
-          scAddress(donor),
+          scAddress(address),
           await stringToBytes32(programId),
           scI128(amountPerPerson),
           scI128(totalBudget),
           scU32(frequencyDays),
-          scVec(geofence),
+          nativeToScVal(geofence), // Let SDK handle nested vectors
           scU64(startTime),
           scU64(endTime),
         ],
@@ -39,21 +35,22 @@ export const disbursementClient = (wallet: any) => {
     },
 
     async distribute(
-      agent: string,
+      address: string,
       programId: string,
       nullifier: string,
       location: [number, number],
       batchId?: string
     ) {
       return wallet.callContract({
+        address,
         contractId,
         method: "distribute",
         args: [
-          scAddress(agent),
+          scAddress(address),
           await stringToBytes32(programId),
           await stringToBytes32(nullifier),
-          scVec(location),
-          batchId ? await stringToBytes32(batchId) : null,
+          nativeToScVal(location), 
+          batchId ? await stringToBytes32(batchId) : nativeToScVal(null),
         ],
       });
     },
