@@ -4,6 +4,7 @@ import { Layout } from './shared/components/Layout/Layout';
 import { DonorModule } from './modules/donor';
 import AgentModule from './modules/agent';
 import { ManagerModule } from './modules/manager';
+import { TestFlow } from './debug/TestFlow';
 
 function App() {
   // For demo, we'll set user as donor
@@ -29,7 +30,7 @@ function App() {
             <Route index element={<Navigate to="/agent/dashboard" />} />
             <Route path="manager/*" element={<ManagerModule />} />
             <Route index element={<Navigate to="/manager/dashboard" />} />
-
+            <Route path="/test" element={<TestFlow />} />
           </Route>
         </Routes>
       </BrowserRouter>

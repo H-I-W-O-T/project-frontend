@@ -1,20 +1,23 @@
-import {
-  Address,
-  nativeToScVal,
-  scValToNative,
-} from "@stellar/stellar-sdk";
+import { nativeToScVal } from "@stellar/stellar-sdk";
 
-// Convert string → Address
-export const toAddress = (addr: string) => {
-  return Address.fromString(addr);
+export const scAddress = (addr: string) => {
+  if (!addr || typeof addr !== "string") {
+    throw new Error("Invalid address");
+  }
+  return nativeToScVal(addr, { type: "address" });
 };
 
-// Convert normal JS → Soroban value
-export const toScVal = (value: any, type?: string) => {
-  return nativeToScVal(value, { type });
-};
+export const scString = (val: string) =>
+  nativeToScVal(val, { type: "string" });
 
-// Convert Soroban → JS
-export const fromScVal = (val: any) => {
-  return scValToNative(val);
-};
+export const scU32 = (val: number) =>
+  nativeToScVal(val, { type: "u32" });
+
+export const scU64 = (val: number) =>
+  nativeToScVal(val, { type: "u64" });
+
+export const scI128 = (val: number) =>
+  nativeToScVal(val, { type: "i128" });
+
+export const scVec = (arr: any[]) =>
+  nativeToScVal(arr, { type: "vec" });

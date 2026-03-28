@@ -1,7 +1,8 @@
 import { CONTRACTS } from "./config";
-import { toAddress, toScVal } from "./utils";
+import { scAddress, scString, scU32, scVec } from "./utils";
+import { stringToBytes32 } from "./encoder";
 
-export const supplyClient = (server: any, wallet: any) => {
+export const supplyClient = (wallet: any) => {
   const contractId = CONTRACTS.SUPPLY;
 
   return {
@@ -16,11 +17,11 @@ export const supplyClient = (server: any, wallet: any) => {
         contractId,
         method: "create_batch",
         args: [
-          toAddress(creator),
-          toScVal(batchId),
-          toScVal(description),
-          toScVal(quantity, "u32"),
-          toScVal(metadataHash),
+          scAddress(creator),
+          await stringToBytes32(batchId),
+          scString(description),
+          scU32(quantity),
+          await stringToBytes32(metadataHash),
         ],
       });
     },
@@ -36,20 +37,12 @@ export const supplyClient = (server: any, wallet: any) => {
         contractId,
         method: "transfer_custody",
         args: [
-          toAddress(sender),
-          toScVal(batchId),
-          toAddress(newCustodian),
-          toScVal(location),
-          toScVal(notes),
+          scAddress(sender),
+          await stringToBytes32(batchId),
+          scAddress(newCustodian),
+          scVec(location),
+          scString(notes),
         ],
-      });
-    },
-
-    async getBatch(batchId: string) {
-      return wallet.callContract({
-        contractId,
-        method: "get_batch",
-        args: [toScVal(batchId)],
       });
     },
   };

@@ -1,7 +1,8 @@
 import { CONTRACTS } from "./config";
-import { toAddress, toScVal } from "./utils";
+import { scAddress } from "./utils";
+import { stringToBytes32 } from "./encoder";
 
-export const identityClient = (server: any, wallet: any) => {
+export const identityClient = (wallet: any) => {
   const contractId = CONTRACTS.IDENTITY;
 
   return {
@@ -10,9 +11,9 @@ export const identityClient = (server: any, wallet: any) => {
         contractId,
         method: "register",
         args: [
-          toAddress(agent),
-          toScVal(nullifier),
-          toScVal(metadataHash),
+          scAddress(agent),
+          await stringToBytes32(nullifier),
+          await stringToBytes32(metadataHash),
         ],
       });
     },
@@ -22,8 +23,8 @@ export const identityClient = (server: any, wallet: any) => {
         contractId,
         method: "verify",
         args: [
-          toAddress(agent),
-          toScVal(nullifier),
+          scAddress(agent),
+          await stringToBytes32(nullifier),
         ],
       });
     },

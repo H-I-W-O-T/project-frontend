@@ -1,10 +1,7 @@
-// src/shared/api/contracts/tokenClient.ts
-
 import { CONTRACTS } from "./config";
-import { toAddress, toScVal } from "./utils";
+import { scAddress, scI128 } from "./utils";
 
-export const tokenClient = (server: any, wallet: any) => {
-
+export const tokenClient = (wallet: any) => {
   const contractId = CONTRACTS.TOKEN;
 
   return {
@@ -13,8 +10,8 @@ export const tokenClient = (server: any, wallet: any) => {
         contractId,
         method: "mint",
         args: [
-          toAddress(to),
-          toScVal(amount, "i128"),
+          scAddress(to),
+          scI128(amount),
         ],
       });
     },
@@ -24,18 +21,10 @@ export const tokenClient = (server: any, wallet: any) => {
         contractId,
         method: "transfer",
         args: [
-          toAddress(from),
-          toAddress(to),
-          toScVal(amount, "i128"),
+          scAddress(from),
+          scAddress(to),
+          scI128(amount),
         ],
-      });
-    },
-
-    async balance(account: string) {
-      return wallet.callContract({
-        contractId,
-        method: "balance",
-        args: [toAddress(account)],
       });
     },
   };

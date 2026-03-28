@@ -1,7 +1,14 @@
 import { CONTRACTS } from "./config";
-import { toAddress, toScVal } from "./utils";
+import {
+  scAddress,
+  scI128,
+  scU32,
+  scU64,
+  scVec,
+} from "./utils";
+import { stringToBytes32 } from "./encoder";
 
-export const disbursementClient = (server: any, wallet: any) => {
+export const disbursementClient = (wallet: any) => {
   const contractId = CONTRACTS.DISBURSEMENT;
 
   return {
@@ -19,14 +26,14 @@ export const disbursementClient = (server: any, wallet: any) => {
         contractId,
         method: "create_program",
         args: [
-          toAddress(donor),
-          toScVal(programId),
-          toScVal(amountPerPerson, "i128"),
-          toScVal(totalBudget, "i128"),
-          toScVal(frequencyDays, "u32"),
-          toScVal(geofence),
-          toScVal(startTime, "u64"),
-          toScVal(endTime, "u64"),
+          scAddress(donor),
+          await stringToBytes32(programId),
+          scI128(amountPerPerson),
+          scI128(totalBudget),
+          scU32(frequencyDays),
+          scVec(geofence),
+          scU64(startTime),
+          scU64(endTime),
         ],
       });
     },
@@ -42,20 +49,12 @@ export const disbursementClient = (server: any, wallet: any) => {
         contractId,
         method: "distribute",
         args: [
-          toAddress(agent),
-          toScVal(programId),
-          toScVal(nullifier),
-          toScVal(location),
-          batchId ? toScVal(batchId) : null,
+          scAddress(agent),
+          await stringToBytes32(programId),
+          await stringToBytes32(nullifier),
+          scVec(location),
+          batchId ? await stringToBytes32(batchId) : null,
         ],
-      });
-    },
-
-    async getProgram(programId: string) {
-      return wallet.callContract({
-        contractId,
-        method: "get_program",
-        args: [toScVal(programId)],
       });
     },
   };
