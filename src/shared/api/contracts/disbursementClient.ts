@@ -1,35 +1,61 @@
-import { nativeToScVal } from "@stellar/stellar-sdk";
+import { nativeToScVal, xdr } from "@stellar/stellar-sdk"; // Fixed import
 import { CONTRACTS } from "./config";
-import { scAddress, scI128, scU32, scU64 } from "./utils";
-import { stringToBytes32 } from "./encoder";
+
+// Helper to ensure the Location object is explicitly tagged as i128
+// Using ScVal as a type here
+const packLocationToScVal = (loc: { lat: bigint; lon: bigint }): xdr.ScVal => {
+  return xdr.ScVal.scvMap([
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("lat"),
+      val: nativeToScVal(loc.lat, { type: "i128" }),
+    }),
+    new xdr.ScMapEntry({
+      key: xdr.ScVal.scvSymbol("lon"),
+      val: nativeToScVal(loc.lon, { type: "i128" }),
+    }),
+  ]);
+};
+
+const scBytes32 = (hex: string) => {
+  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
+  const bytes = new Uint8Array(
+    cleanHex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+  );
+  return nativeToScVal(bytes, { type: "bytes" });
+};
 
 export const disbursementClient = (wallet: any) => {
   const contractId = CONTRACTS.DISBURSEMENT;
 
   return {
     async createProgram(
-      address: string, // Pass address explicitly
+      address: string,
       programId: string,
-      amountPerPerson: number,
-      totalBudget: number,
+      amountPerPerson: bigint,
+      totalBudget: bigint,
       frequencyDays: number,
-      geofence: [number, number][],
-      startTime: number,
-      endTime: number
+      geofence: { lat: bigint; lon: bigint }[],
+      startTime: bigint,
+      endTime: bigint
     ) {
+      // Explicitly pack every vertex in the geofence Vec
+      const geofenceScVal = xdr.ScVal.scvVec(
+        geofence.map(point => packLocationToScVal(point))
+      );
+
       return wallet.callContract({
-        address, // Send to wallet hook
+        address,
         contractId,
         method: "create_program",
         args: [
-          scAddress(address),
-          await stringToBytes32(programId),
-          scI128(amountPerPerson),
-          scI128(totalBudget),
-          scU32(frequencyDays),
-          nativeToScVal(geofence), // Let SDK handle nested vectors
-          scU64(startTime),
-          scU64(endTime),
+          nativeToScVal(address, { type: "address" }),
+          scBytes32(programId),
+          nativeToScVal(amountPerPerson, { type: "i128" }),
+          nativeToScVal(totalBudget, { type: "i128" }),
+          nativeToScVal(frequencyDays, { type: "u32" }),
+          geofenceScVal, 
+          nativeToScVal(startTime, { type: "u64" }),
+          nativeToScVal(endTime, { type: "u64" }),
         ],
       });
     },
@@ -38,19 +64,22 @@ export const disbursementClient = (wallet: any) => {
       address: string,
       programId: string,
       nullifier: string,
-      location: [number, number],
+      location: { lat: bigint; lon: bigint },
       batchId?: string
     ) {
+      // For Option<BytesN<32>>, if it's undefined, we pass an ScVal representing Void/None
+      const batchVal = batchId ? scBytes32(batchId) : nativeToScVal(void 0);
+
       return wallet.callContract({
         address,
         contractId,
         method: "distribute",
         args: [
-          scAddress(address),
-          await stringToBytes32(programId),
-          await stringToBytes32(nullifier),
-          nativeToScVal(location), 
-          batchId ? await stringToBytes32(batchId) : nativeToScVal(null),
+          nativeToScVal(address, { type: "address" }),
+          scBytes32(programId),
+          scBytes32(nullifier),
+          packLocationToScVal(location),
+          batchVal,
         ],
       });
     },
