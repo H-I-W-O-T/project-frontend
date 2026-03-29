@@ -40,11 +40,11 @@ export interface Shipment {
 export interface ShipmentEvent {
   eventId: string;
   eventType: 'create' | 'transfer' | 'damage' | 'distribute';
-  timestamp: string;
-  location?: string;
-  quantity: number;
   from?: string;
   to?: string;
+  quantity: number;
+  location: string;
+  timestamp: string;
   notes?: string;
   evidenceHash?: string;
 }
