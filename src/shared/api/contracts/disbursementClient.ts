@@ -83,5 +83,20 @@ export const disbursementClient = (wallet: any) => {
         ],
       });
     },
+    async getProgram(programId: string) {
+      return wallet.callContract({
+        contractId,
+        method: "get_program",
+        args: [scBytes32(programId)],
+      });
+    },
+
+    async getRemainingBudget(programId: string) {
+      return wallet.callContract({
+        contractId,
+        method: "get_remaining_budget",
+        args: [scBytes32(programId)],
+      });
+    }
   };
 };

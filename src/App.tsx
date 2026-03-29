@@ -5,6 +5,7 @@ import { DonorModule } from './modules/donor';
 import AgentModule from './modules/agent';
 import { ManagerModule } from './modules/manager';
 import { TestFlow } from './debug/TestFlow';
+import { StellarProvider } from './contexts/StellarContext';
 
 function App() {
   // For demo, we'll set user as donor
@@ -12,6 +13,7 @@ function App() {
   const userName = 'Humanitarian Foundation';
 
   return (
+    <StellarProvider>
     <ToastProvider>
       <BrowserRouter>
         <Routes>
@@ -35,6 +37,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </ToastProvider>
+    </StellarProvider>
   );
 }
 
