@@ -6,10 +6,12 @@ import { supplyClient } from "../shared/api/contracts/supplyClient";
 import { tokenClient } from "../shared/api/contracts/tokenClient";
 import { CONTRACTS } from "../shared/api/contracts/config";
 import { hexToBytes32 } from "../shared/api/contracts/encoder"; // ✅ Ensure you add this helper
+import { BatchHistory } from "./BatchHistory";
 
 export const TestFlow = () => {
   const wallet = useWallet();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [currentBatchId, setCurrentBatchId] = useState<string>("");
 
   // --- HELPER: Coordinate Scaling ---
   const SCALE = 1_000_000n;
@@ -103,6 +105,7 @@ export const TestFlow = () => {
       console.log("Step 4: Creating Supply Chain Batch...");
       // ⚠️ IMPORTANT: Ensure supplyClient uses hexToBytes32(bId) and NOT stringToBytes32(bId)
       await supply.createBatch(address, bId, "Emergency Food Rations", 100, mHash);
+      setCurrentBatchId(bId);
 
       // 5. DISTRIBUTE
       console.log("Step 5: Running Distribution...");
@@ -116,6 +119,11 @@ export const TestFlow = () => {
         currentLoc, 
         bId 
       );
+
+      // At the very end of runTest()
+      console.log("Step 6: Verifying Audit Trail...");
+      const history = await supply.getBatchHistory(bId);
+      console.log("📜 Full History from Ledger:", history);
 
       console.log("🚀 FULL FLOW SUCCESS!");
       setRefreshKey(k => k + 1);
@@ -165,6 +173,7 @@ export const TestFlow = () => {
             </div>
         </div>
       </div>
+      <BatchHistory wallet={wallet} batchId={currentBatchId}/>
     </div>
   );
 };
