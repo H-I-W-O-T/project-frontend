@@ -4,6 +4,7 @@ import {
   TransactionBuilder,
   rpc,
   Transaction,
+  Address,
   nativeToScVal,
 } from "@stellar/stellar-sdk";
 
@@ -59,15 +60,22 @@ export const useWallet = () => {
     const activeAddress = address || publicKey;
     if (!activeAddress) throw new Error("Wallet not connected");
 
-    const scArgs = args.map((arg) => {
-      try {
-        return nativeToScVal(arg);
-      } catch (e) {
-        console.error("Mapping error for argument:", arg);
-        throw e;
-      }
-    });
+    // const scArgs = args.map((arg) => {
+    //   try {
+    //     return nativeToScVal(arg);
+    //   } catch (e) {
+    //     console.error("Mapping error for argument:", arg);
+    //     throw e;
+    //   }
+    // });
 
+    const scArgs = args.map((arg) => {
+      // If it's a valid Stellar Address string, wrap it so nativeToScVal handles it correctly
+      if (typeof arg === "string" && (arg.startsWith("G") || arg.startsWith("C"))) {
+        return Address.fromString(arg).toScVal();
+      }
+      return nativeToScVal(arg);
+    });
     try {
       // A. Load Account
       const sourceAccount = await server.getAccount(activeAddress);

@@ -1,23 +1,23 @@
-import { nativeToScVal } from "@stellar/stellar-sdk";
 import { CONTRACTS } from "./config";
 import { scAddress, scString, scU32 } from "./utils";
-import { stringToBytes32 } from "./encoder";
+// Use the standard Buffer or a consistent hex-to-bytes helper
+import { hexToBytes32 } from "./encoder"; 
 
+// supplyClient.ts
 export const supplyClient = (wallet: any) => {
   const contractId = CONTRACTS.SUPPLY;
 
   return {
-    async createBatch(address: string, batchId: string, description: string, quantity: number, metadataHash: string) {
+    async createBatch(creator: string, batchId: string, description: string, quantity: number, metadataHash: string) {
       return wallet.callContract({
-        address,
         contractId,
         method: "create_batch",
         args: [
-          scAddress(address),
-          await stringToBytes32(batchId),
+          scAddress(creator),
+          hexToBytes32(batchId), // ❌ No more hashing!
           scString(description),
           scU32(quantity),
-          await stringToBytes32(metadataHash),
+          hexToBytes32(metadataHash),
         ],
       });
     },

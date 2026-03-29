@@ -1,31 +1,35 @@
+import { nativeToScVal } from "@stellar/stellar-sdk";
 import { CONTRACTS } from "./config";
-import { scAddress, scI128 } from "./utils";
 
 export const tokenClient = (wallet: any) => {
   const contractId = CONTRACTS.TOKEN;
 
   return {
-    async mint(to: string, amount: number) {
+    async approve(from: string, spender: string, amount: bigint, expiration: number) {
       return wallet.callContract({
         contractId,
-        method: "mint",
+        method: "approve",
         args: [
-          scAddress(to),
-          scI128(amount),
+          nativeToScVal(from, { type: "address" }),
+          nativeToScVal(spender, { type: "address" }),
+          nativeToScVal(amount, { type: "i128" }),
+          nativeToScVal(expiration, { type: "u32" }), // Force u32 wrapping
         ],
+        address: from
       });
     },
 
-    async transfer(from: string, to: string, amount: number) {
+    async allowance(from: string, spender: string) {
       return wallet.callContract({
         contractId,
-        method: "transfer",
+        method: "allowance",
         args: [
-          scAddress(from),
-          scAddress(to),
-          scI128(amount),
-        ],
+          nativeToScVal(from, { type: "address" }),
+          nativeToScVal(spender, { type: "address" })
+        ]
       });
     },
+    
+    // ... keep your mint and transfer logic here, but use nativeToScVal similarly!
   };
 };
