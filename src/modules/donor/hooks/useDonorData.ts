@@ -1,45 +1,119 @@
 import { useState, useEffect, useCallback } from 'react';
-import { donorService } from '../services/donorService';
-import type { DonorStats, Program } from '../types/donor.types';
-import { useToast } from '../../../shared/components/Common/ToastContainer';
+import { useStellar } from '../../../contexts/StellarContext';
+import { parseScVal } from '../../../shared/api/contracts/utils';
+import { CONTRACTS } from '../../../shared/api/contracts/config';
+import type { DonorStats as DonorStatsType } from '../types/donor.types';
+
+const DECIMALS = 10_000_000;
 
 export const useDonorData = () => {
-  const [stats, setStats] = useState<DonorStats | null>(null);
-  const [programs, setPrograms] = useState<Program[]>([]);
+  const { queryContract, publicKey, isLoaded } = useStellar();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const toast = useToast();
+  const [programs, setPrograms] = useState<any[]>([]);
+  
+  const [stats, setStats] = useState<DonorStatsType>({
+    totalDonated: 0,
+    totalDonatedChange: 0,
+    activePrograms: 0,
+    programsChange: 0,
+    beneficiariesReached: 0,
+    beneficiariesReachedChange: 0,
+    fundsRemaining: 0,
+    fundsRemainingChange: 0,
+  });
 
   const fetchData = useCallback(async () => {
+    // A. Wait for Context
+    if (!isLoaded) return;
+
+    // B. If no wallet, stop loading and show empty state
+    if (!publicKey || !queryContract) {
+      console.log("⏸️ Wallet not connected - showing empty dashboard.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    setError(null);
+    console.log(`⛓️ Ledger Sync: Loading for address ${publicKey.slice(0, 6)}...`);
+
     try {
-      const [statsData, programsData] = await Promise.all([
-        donorService.getStats(),
-        donorService.getPrograms(),
-      ]);
-      setStats(statsData);
-      setPrograms(programsData);
-    } catch (err) {
-      setError('Failed to load donor data');
-      toast.error('Failed to load donor data');
-      console.error(err);
+      // 1. DISCOVER IDs
+      const storageKey = `funded_programs_${publicKey}`;
+      const savedIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      
+      // 2. FETCH TOKEN BALANCE
+      const rawBalance = await queryContract({
+        contractId: CONTRACTS.TOKEN,
+        method: "balance",
+        args: [publicKey]
+      });
+      const walletBalance = Number(parseScVal(rawBalance) || 0) / DECIMALS;
+
+      if (savedIds.length === 0) {
+        setStats(prev => ({ ...prev, fundsRemaining: walletBalance }));
+        setPrograms([]);
+        setLoading(false);
+        return;
+      }
+
+      // 3. FETCH PROGRAM STATES
+      const programResults = await Promise.all(
+        savedIds.map(async (id: string) => {
+          try {
+            const rawProgram = await queryContract({
+              contractId: CONTRACTS.DISBURSEMENT,
+              method: "get_program",
+              args: [id]
+            });
+            
+            const onChainData = parseScVal(rawProgram);
+            if (!onChainData) return null;
+
+            return {
+              programId: id,
+              name: onChainData.name || `Program ${id.substring(0, 4)}`,
+              status: onChainData.is_active ? 'active' : 'completed',
+              totalBudget: Number(onChainData.total_budget || 0) / DECIMALS,
+              remainingBudget: Number(onChainData.remaining_budget || 0) / DECIMALS,
+              amountPerPerson: Number(onChainData.amount_per_person || 1) / DECIMALS,
+              beneficiariesReached: Math.floor(
+                (Number(onChainData.total_budget || 0) - Number(onChainData.remaining_budget || 0)) / 
+                (Number(onChainData.amount_per_person || 1) || 1)
+              ),
+            };
+          } catch (err) {
+            console.warn(`Program ${id} query error:`, err);
+            return null;
+          }
+        })
+      );
+
+      const validPrograms = programResults.filter(p => p !== null);
+
+      // 4. UPDATE AGGREGATES
+      setPrograms(validPrograms);
+      setStats({
+        totalDonated: validPrograms.reduce((sum, p) => sum + p.totalBudget, 0),
+        activePrograms: validPrograms.filter(p => p.status === 'active').length,
+        beneficiariesReached: validPrograms.reduce((sum, p) => sum + p.beneficiariesReached, 0),
+        fundsRemaining: walletBalance,
+        totalDonatedChange: 0,
+        programsChange: 0,
+        beneficiariesReachedChange: 0,
+        fundsRemainingChange: 0,
+      });
+
+    } catch (error) {
+      console.error("🚨 Ledger synchronization failed:", error);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [publicKey, queryContract, isLoaded]);
 
+  // CRITICAL: Watch publicKey so we re-fetch when Freighter wakes up
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, publicKey, isLoaded]);
 
-  const refetch = () => fetchData();
-
-  return {
-    stats,
-    programs,
-    loading,
-    error,
-    refetch,
-  };
+  return { loading, programs, stats, refresh: fetchData };
 };

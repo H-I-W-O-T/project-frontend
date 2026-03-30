@@ -1,4 +1,4 @@
-import { nativeToScVal, xdr } from "@stellar/stellar-sdk";
+import { scValToNative, nativeToScVal, xdr } from "@stellar/stellar-sdk";
 
 export const scAddress = (addr: string) => {
   return nativeToScVal(addr, { type: "address" });
@@ -22,4 +22,23 @@ export const scVec = (arr: any[]) => {
   return nativeToScVal(arr); 
   // Note: nativeToScVal usually handles nested arrays fine 
   // without the { type: "vec" } hint if the elements are standard.
+};
+
+// utils.ts
+export const parseScVal = (val: any) => {
+  if (val === undefined || val === null) return 0;
+  
+  // If it's already a JS type, don't try to parse XDR
+  if (typeof val === 'number' || typeof val === 'bigint' || typeof val === 'string') {
+    return val;
+  }
+
+  try {
+    // Only parse if it looks like an ScVal object
+    return (val && typeof val === 'object' && ('switch' in val || '_switch' in val)) 
+      ? scValToNative(val) 
+      : val;
+  } catch (e) {
+    return val;
+  }
 };

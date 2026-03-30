@@ -5,96 +5,104 @@ interface ShipmentTimelineProps {
 }
 
 export const ShipmentTimeline = ({ events }: ShipmentTimelineProps) => {
+  // Sort events chronologically (Oldest first for a top-down timeline)
+  const sortedEvents = [...events].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
   const getEventIcon = (type: ShipmentEvent['eventType']) => {
     switch (type) {
-      case 'create':
-        return '📦';
-      case 'transfer':
-        return '🚚';
-      case 'damage':
-        return '⚠️';
-      case 'distribute':
-        return '👥';
-      default:
-        return '📍';
-    }
-  };
-
-  const getEventTitle = (event: ShipmentEvent) => {
-    switch (event.eventType) {
-      case 'create':
-        return 'Shipment Created';
-      case 'transfer':
-        return `Transferred to ${event.to || 'Next Destination'}`;
-      case 'damage':
-        return `${event.quantity} Units Damaged`;
-      case 'distribute':
-        return `Distributed to Beneficiaries`;
-      default:
-        return 'Event';
+      case 'create': return '📦';
+      case 'transfer': return '🚚';
+      case 'damage': return '⚠️';
+      case 'distribute': return '👥';
+      default: return '📍';
     }
   };
 
   const getEventColor = (type: ShipmentEvent['eventType']) => {
     switch (type) {
-      case 'create':
-        return 'bg-primary';
-      case 'transfer':
-        return 'bg-primary-light';
-      case 'damage':
-        return 'bg-warning';
-      case 'distribute':
-        return 'bg-success';
-      default:
-        return 'bg-gray-400';
+      case 'create': return 'bg-primary';
+      case 'transfer': return 'bg-blue-500';
+      case 'damage': return 'bg-red-500';
+      case 'distribute': return 'bg-green-600';
+      default: return 'bg-gray-400';
     }
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString();
+    return new Date(dateString).toLocaleString([], {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
   };
 
   return (
-    <div className="timeline">
-      {events.map((event, index) => (
-        <div key={event.eventId} className="timeline-item relative pb-6 last:pb-0">
-          <div className={`timeline-dot absolute left-[-1.85rem] top-0 w-3 h-3 rounded-full ${getEventColor(event.eventType)} ring-4 ring-white`} />
-          <div className="ml-6">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-xl">{getEventIcon(event.eventType)}</span>
-              <p className="font-semibold text-gray-900">
-                {getEventTitle(event)}
-              </p>
+    <div className="relative pl-8 border-l-2 border-gray-100 ml-4 space-y-8">
+      {sortedEvents.map((event) => (
+        <div key={event.eventId} className="relative">
+          {/* Timeline Dot */}
+          <div className={`absolute -left-[2.65rem] top-1 w-5 h-5 rounded-full border-4 border-white shadow-sm flex items-center justify-center ${getEventColor(event.eventType)}`}>
+            <div className="w-2 h-2 bg-white rounded-full" />
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{getEventIcon(event.eventType)}</span>
+                <h4 className="font-bold text-gray-900 capitalize">
+                  {event.eventType === 'create' ? 'Batch Initialized' : 
+                   event.eventType === 'transfer' ? 'Custody Transfer' : 
+                   event.eventType === 'damage' ? 'Damage Reported' : 'Distribution Event'}
+                </h4>
+              </div>
+              <span className="text-xs font-medium text-gray-400">
+                {formatDate(event.timestamp)}
+              </span>
             </div>
-            <p className="text-sm text-gray-500 mb-1">
-              {formatDate(event.timestamp)}
-            </p>
-            {event.location && (
-              <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
-                <span>📍</span> {event.location}
-              </p>
-            )}
-            {event.from && event.to && event.eventType === 'transfer' && (
-              <p className="text-xs text-gray-500 mb-1">
-                From: {event.from} → To: {event.to}
-              </p>
-            )}
-            {event.quantity > 0 && event.eventType !== 'transfer' && (
-              <p className="text-xs text-gray-600 mb-1">
-                Quantity: {event.quantity.toLocaleString()} units
-              </p>
-            )}
-            {event.notes && (
-              <p className="text-sm text-gray-600 mt-1 bg-gray-50 p-2 rounded">
-                📝 {event.notes}
-              </p>
-            )}
-            {event.evidenceHash && (
-              <p className="text-xs text-primary-500 mt-1">
-                🔗 Evidence: {event.evidenceHash.slice(0, 20)}...
-              </p>
-            )}
+
+            <div className="space-y-2 text-sm text-gray-600">
+              {event.location && (
+                <p className="flex items-center gap-1 font-medium">
+                  <span className="opacity-70">📍 Location:</span> {event.location}
+                </p>
+              )}
+
+              {event.eventType === 'transfer' && (
+                <div className="bg-blue-50 p-2 rounded text-xs border border-blue-100">
+                  <p><span className="font-semibold text-blue-700">From:</span> {event.from?.slice(0, 8)}...</p>
+                  <p><span className="font-semibold text-blue-700">To:</span> {event.to?.slice(0, 8)}...</p>
+                </div>
+              )}
+
+              {event.quantity > 0 && (
+                <p className={`${event.eventType === 'damage' ? 'text-red-600 font-bold' : ''}`}>
+                  Quantity: {event.quantity.toLocaleString()} units
+                </p>
+              )}
+
+              {event.notes && (
+                <p className="italic text-gray-500 bg-gray-50 p-2 rounded">
+                  "{event.notes}"
+                </p>
+              )}
+
+              {event.evidenceHash && (
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
+                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                    🛡️ LEDGER VERIFIED
+                  </span>
+                  <a 
+                    href={`https://ipfs.io/ipfs/${event.evidenceHash}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-[10px] text-primary hover:underline"
+                  >
+                    View Hash: {event.evidenceHash.slice(0, 12)}...
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ))}
