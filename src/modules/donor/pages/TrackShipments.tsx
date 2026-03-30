@@ -17,6 +17,8 @@ export const TrackShipments = () => {
 
   const programId = searchParams.get('program');
 
+  console.log(setSearchParams, setSelectedShipment)
+
   useEffect(() => {
     if (programId && shipments.length > 0) {
       // Find shipment related to program (in mock, just select first)

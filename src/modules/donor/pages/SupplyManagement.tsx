@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Card } from '../../../shared/components/Common/Card';
 import { Button } from '../../../shared/components/Common/Button';
@@ -7,13 +7,9 @@ import { useStellar } from '../../../contexts/StellarContext';
 import { useToast } from '../../../shared/components/Common/ToastContainer';
 import { 
   Package, 
-  Truck, 
   AlertTriangle, 
-  History, 
   Plus, 
   ChevronRight,
-  ClipboardList,
-  MapPin
 } from 'lucide-react';
 import { parseScVal } from '../../../shared/api/contracts/utils';
 
@@ -31,6 +27,7 @@ export const SupplyManagement = () => {
     defaultValues: { description: '', quantity: 100 }
   });
 
+  console.log(loading)
   // Inside SupplyManagement.tsx
   const loadData = async () => {
     setLoading(true);

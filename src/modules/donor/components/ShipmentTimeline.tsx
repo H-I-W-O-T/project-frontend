@@ -1,7 +1,5 @@
-import type { ShipmentEvent } from '../types/donor.types';
-
 interface ShipmentTimelineProps {
-  events: any[]; // Accepting raw mapped events from the hook
+  events: any[];
 }
 
 export const ShipmentTimeline = ({ events }: ShipmentTimelineProps) => {

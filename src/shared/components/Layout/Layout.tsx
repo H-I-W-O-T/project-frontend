@@ -3,7 +3,6 @@ import { useOutlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
-import { useStellar } from '../../../contexts/StellarContext';
 
 interface LayoutProps {
   userType: 'donor' | 'manager' | 'agent';

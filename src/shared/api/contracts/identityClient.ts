@@ -1,4 +1,4 @@
-import { nativeToScVal, xdr } from "@stellar/stellar-sdk";
+import { nativeToScVal } from "@stellar/stellar-sdk";
 import { CONTRACTS } from "./config";
 
 // Helper to convert hex string directly to Uint8Array
