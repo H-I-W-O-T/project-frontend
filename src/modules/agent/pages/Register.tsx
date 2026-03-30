@@ -182,27 +182,59 @@ const Register: React.FC = () => {
     fingerprint: ''
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
     
-    // Location is optional in the contract, but we're collecting it for metadata
-    if (!formData.fingerprint) {
-      alert('Please provide biometric data to register');
-      return;
-    }
+  //   // Location is optional in the contract, but we're collecting it for metadata
+  //   if (!formData.fingerprint) {
+  //     alert('Please provide biometric data to register');
+  //     return;
+  //   }
 
-    try {
-      await register({
-        fullName: formData.fullName,
-        nationalId: formData.nationalId,
-        phoneNumber: formData.phoneNumber,
-        fingerprint: formData.fingerprint,
-        location: location || undefined
-      });
-    } catch (err) {
-      console.error('Registration failed:', err);
-    }
-  };
+  //   try {
+  //     await register({
+  //       fullName: formData.fullName,
+  //       nationalId: formData.nationalId,
+  //       phoneNumber: formData.phoneNumber,
+  //       fingerprint: formData.fingerprint,
+  //       location: location || undefined
+  //     });
+  //   } catch (err) {
+  //     console.error('Registration failed:', err);
+  //   }
+  // };
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!formData.fingerprint) {
+    alert('Please provide biometric data to register');
+    return;
+  }
+
+  try {
+    console.log('Starting registration with data:', {
+      fullName: formData.fullName,
+      nationalId: formData.nationalId,
+      phoneNumber: formData.phoneNumber,
+      fingerprint: formData.fingerprint.substring(0, 20) + '...'
+    });
+    
+    const result = await register({
+      fullName: formData.fullName,
+      nationalId: formData.nationalId,
+      phoneNumber: formData.phoneNumber,
+      fingerprint: formData.fingerprint,
+      location: location || undefined
+    });
+    
+    console.log('Registration successful:', result);
+  } catch (err: any) {
+    console.error('Registration failed:', err);
+    // setError(err.message || 'Registration failed');
+  }
+};
 
   const handleBiometricCapture = (fingerprintHash: string) => {
     setFormData(prev => ({ ...prev, fingerprint: fingerprintHash }));
