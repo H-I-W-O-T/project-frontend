@@ -1,159 +1,108 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStellar } from '../../../contexts/StellarContext';
-import { CONTRACTS } from '../../../shared/api/contracts/config';
-import { scValToNative } from '@stellar/stellar-sdk'; // Import the converter
-
-export interface Shipment {
-  batchId: string;
-  description: string;
-  status: 'created' | 'in-transit' | 'in-storage' | 'distributed';
-  quantity: number;
-  remaining: number;
-  currentLocation: string;
-  timeline: any[];
-}
+import { scValToNative } from '@stellar/stellar-sdk';
 
 export const useShipments = () => {
-  const { queryContract, publicKey, isLoaded } = useStellar();
-  
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { clients, publicKey } = useStellar();
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [selectedShipment, setSelectedShipment] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const parseStatus = (status: any): Shipment['status'] => {
-    if (typeof status === 'object' && status !== null) {
-      const key = Object.keys(status)[0].toLowerCase();
-      if (key.includes('transit')) return 'in-transit';
-      if (key.includes('storage')) return 'in-storage';
-      if (key.includes('distributed')) return 'distributed';
+  // Helper: Convert Uint8Array/Buffer to Hex string (prevents .toLowerCase() crashes)
+  const formatId = (val: any): string => {
+    if (typeof val === 'string') return val;
+    if (val instanceof Uint8Array || Buffer.isBuffer(val)) {
+      return Array.from(val)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
     }
-    return 'created';
+    // Handle Address objects if they aren't auto-stringified
+    if (val?.toString) return val.toString();
+    return String(val);
   };
 
-  const fetchAllShipments = useCallback(async () => {
-    if (!isLoaded || !publicKey) return;
+  // Helper: Map Rust Enums to Frontend Strings
+  const mapStatus = (statusNum: number) => {
+    const statuses = ['created', 'in-transit', 'in-storage', 'distributed'];
+    return statuses[statusNum] || 'created';
+  };
+
+  const mapEventType = (typeNum: number) => {
+    const types = ['create', 'transfer', 'damage', 'distribute'];
+    return types[typeNum] || 'transfer';
+  };
+
+  // 2. Fetch all batches for the sidebar index
+  const fetchShipments = useCallback(async () => {
+    if (!clients.supply || !publicKey) return;
     setLoading(true);
     try {
-      const savedBatchIds = JSON.parse(localStorage.getItem(`batches_${publicKey}`) || '[]');
-      
-      const results = await Promise.all(
-        savedBatchIds.map(async (id: string) => {
-          try {
-            const scValResult = await queryContract({
-              contractId: CONTRACTS.SUPPLY,
-              method: "get_batch",
-              args: [id]
-            });
-
-            if (!scValResult) return null;
-            
-            // --- FIX: Convert ScVal to native JS object ---
-            const raw = scValToNative(scValResult);
-
-            return {
-              batchId: id,
-              description: raw.description || "Supply Batch",
-              status: parseStatus(raw.status),
-              quantity: Number(raw.quantity),
-              remaining: Number(raw.remaining_quantity),
-              currentLocation: raw.current_location || "Unknown",
-              timeline: []
-            };
-          } catch (e) {
-            return null;
-          }
-        })
-      );
-      setShipments(results.filter((s): s is Shipment => s !== null));
+      const result = await clients.supply.getAllBatches();
+      if (result) {
+        const nativeBatches = scValToNative(result);
+        
+        const formatted = nativeBatches.map((b: any) => ({
+          batchId: formatId(b.batch_id),
+          description: b.description.toString(), // Ensure String/Bytes becomes string
+          quantity: Number(b.quantity),
+          remaining: Number(b.remaining),
+          status: mapStatus(b.status),
+          currentLocation: `Custodian: ${formatId(b.current_custodian).slice(0, 8)}...`,
+        }));
+        setShipments(formatted);
+      }
+    } catch (err) {
+      console.error("Ledger Index Fetch Failed:", err);
     } finally {
       setLoading(false);
     }
-  }, [isLoaded, publicKey, queryContract]);
+  }, [clients.supply, publicKey]);
 
+  // 3. Fetch detailed history for the Timeline
   const fetchShipmentDetails = useCallback(async (batchId: string) => {
-    if (!isLoaded) return;
-    setLoading(true);
+    if (!clients.supply) return;
+    
     try {
-      const scValResult = await queryContract({
-        contractId: CONTRACTS.SUPPLY,
-        method: "get_batch",
-        args: [batchId]
-      });
-
-      if (!scValResult) throw new Error("Batch not found");
-
-      // --- FIX: Convert ScVal to native JS object ---
-      const raw = scValToNative(scValResult);
-      const timelineEvents = [];
+      const batchRaw = await clients.supply.getBatch(batchId);
+      const historyRaw = await clients.supply.getBatchHistory(batchId);
       
-      timelineEvents.push({
-        eventId: `${batchId}-init`,
-        eventType: 'create',
-        timestamp: new Date(Number(raw.created_at) * 1000).toISOString(),
-        location: raw.origin_location || "Source",
-        quantity: Number(raw.quantity),
-        notes: "Batch initialized on-chain."
-      });
-
-      if (raw.custody_history && Array.isArray(raw.custody_history)) {
-        raw.custody_history.forEach((h: any, i: number) => {
-          timelineEvents.push({
-            eventId: `transfer-${i}`,
-            eventType: 'transfer',
-            timestamp: new Date(Number(h.timestamp) * 1000).toISOString(),
-            location: h.location,
-            from: h.previous_handler,
-            to: h.current_handler,
-            quantity: 0,
-            notes: h.notes
-          });
-        });
-      }
-
-      if (raw.damage_reports && Array.isArray(raw.damage_reports)) {
-        raw.damage_reports.forEach((d: any, i: number) => {
-          timelineEvents.push({
-            eventId: `damage-${i}`,
-            eventType: 'damage',
-            timestamp: new Date(Number(d.timestamp) * 1000).toISOString(),
-            location: d.location,
-            quantity: Number(d.amount),
-            notes: d.reason,
-            evidenceHash: d.evidence_hash
-          });
-        });
-      }
+      const batch = scValToNative(batchRaw);
+      const history = scValToNative(historyRaw);
 
       setSelectedShipment({
-        batchId,
-        description: raw.description,
-        status: parseStatus(raw.status),
-        quantity: Number(raw.quantity),
-        remaining: Number(raw.remaining_quantity),
-        currentLocation: raw.current_location,
-        timeline: timelineEvents.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
+        batchId: formatId(batch.batch_id),
+        description: batch.description.toString(),
+        quantity: Number(batch.quantity),
+        remaining: Number(batch.remaining),
+        status: mapStatus(batch.status),
+        currentLocation: formatId(batch.current_custodian),
+        timeline: history.map((event: any) => ({
+          eventId: formatId(event.event_id),
+          eventType: mapEventType(event.event_type),
+          // Convert Soroban i64 timestamp to JS Date
+          timestamp: new Date(Number(event.timestamp) * 1000).toISOString(),
+          location: `Lat: ${event.location[0]}, Lon: ${event.location[1]}`,
+          quantity: Math.abs(Number(event.quantity_change)),
+          notes: event.notes.toString(),
+          from: event.from ? formatId(event.from) : null,
+          to: event.to ? formatId(event.to) : null
+        }))
       });
     } catch (err) {
-      setError("Could not retrieve chain of custody.");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching shipment details:", err);
     }
-  }, [isLoaded, queryContract]);
+  }, [clients.supply]);
 
   useEffect(() => {
-    fetchAllShipments();
-  }, [fetchAllShipments]);
+    fetchShipments();
+  }, [fetchShipments]);
 
-  return {
-    shipments,
-    selectedShipment,
-    loading,
-    error,
-    fetchShipmentDetails,
-    fetchAllShipments,
-    setSelectedShipment
+  return { 
+    shipments, 
+    selectedShipment, 
+    loading, 
+    fetchShipments, 
+    fetchShipmentDetails, 
+    setSelectedShipment 
   };
 };

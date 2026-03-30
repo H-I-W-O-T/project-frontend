@@ -1,16 +1,16 @@
 import type { ShipmentEvent } from '../types/donor.types';
 
 interface ShipmentTimelineProps {
-  events: ShipmentEvent[];
+  events: any[]; // Accepting raw mapped events from the hook
 }
 
 export const ShipmentTimeline = ({ events }: ShipmentTimelineProps) => {
-  // Sort events chronologically (Oldest first for a top-down timeline)
+  // 1. Sort events chronologically (Stellar ledger timestamps are in seconds)
   const sortedEvents = [...events].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
-  const getEventIcon = (type: ShipmentEvent['eventType']) => {
+  const getEventIcon = (type: string) => {
     switch (type) {
       case 'create': return '📦';
       case 'transfer': return '🚚';
@@ -20,9 +20,9 @@ export const ShipmentTimeline = ({ events }: ShipmentTimelineProps) => {
     }
   };
 
-  const getEventColor = (type: ShipmentEvent['eventType']) => {
+  const getEventColor = (type: string) => {
     switch (type) {
-      case 'create': return 'bg-primary';
+      case 'create': return 'bg-teal-600';
       case 'transfer': return 'bg-blue-500';
       case 'damage': return 'bg-red-500';
       case 'distribute': return 'bg-green-600';
@@ -39,8 +39,8 @@ export const ShipmentTimeline = ({ events }: ShipmentTimelineProps) => {
 
   return (
     <div className="relative pl-8 border-l-2 border-gray-100 ml-4 space-y-8">
-      {sortedEvents.map((event) => (
-        <div key={event.eventId} className="relative">
+      {sortedEvents.map((event, index) => (
+        <div key={event.eventId || index} className="relative">
           {/* Timeline Dot */}
           <div className={`absolute -left-[2.65rem] top-1 w-5 h-5 rounded-full border-4 border-white shadow-sm flex items-center justify-center ${getEventColor(event.eventType)}`}>
             <div className="w-2 h-2 bg-white rounded-full" />
@@ -62,46 +62,41 @@ export const ShipmentTimeline = ({ events }: ShipmentTimelineProps) => {
             </div>
 
             <div className="space-y-2 text-sm text-gray-600">
-              {event.location && (
-                <p className="flex items-center gap-1 font-medium">
-                  <span className="opacity-70">📍 Location:</span> {event.location}
-                </p>
-              )}
+              <p className="flex items-center gap-1 font-medium">
+                <span className="opacity-70">📍 Location:</span> {event.location}
+              </p>
 
               {event.eventType === 'transfer' && (
-                <div className="bg-blue-50 p-2 rounded text-xs border border-blue-100">
-                  <p><span className="font-semibold text-blue-700">From:</span> {event.from?.slice(0, 8)}...</p>
-                  <p><span className="font-semibold text-blue-700">To:</span> {event.to?.slice(0, 8)}...</p>
+                <div className="bg-blue-50 p-2 rounded text-[10px] border border-blue-100 font-mono">
+                  <p><span className="font-semibold text-blue-700 uppercase">From:</span> {event.from}</p>
+                  <p><span className="font-semibold text-blue-700 uppercase">To:</span> {event.to}</p>
                 </div>
               )}
 
-              {event.quantity > 0 && (
-                <p className={`${event.eventType === 'damage' ? 'text-red-600 font-bold' : ''}`}>
-                  Quantity: {event.quantity.toLocaleString()} units
-                </p>
-              )}
+              <p className={`${event.eventType === 'damage' ? 'text-red-600 font-bold' : ''}`}>
+                {event.eventType === 'create' ? 'Initial Quantity' : 'Update'}: {event.quantity.toLocaleString()} units
+              </p>
 
               {event.notes && (
-                <p className="italic text-gray-500 bg-gray-50 p-2 rounded">
+                <p className="italic text-gray-500 bg-gray-50 p-2 rounded text-xs">
                   "{event.notes}"
                 </p>
               )}
 
-              {event.evidenceHash && (
-                <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
-                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
-                    🛡️ LEDGER VERIFIED
-                  </span>
-                  <a 
-                    href={`https://ipfs.io/ipfs/${event.evidenceHash}`} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-[10px] text-primary hover:underline"
-                  >
-                    View Hash: {event.evidenceHash.slice(0, 12)}...
-                  </a>
-                </div>
-              )}
+              {/* Stellar Ledger Verification Link */}
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
+                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                  🛡️ STELLAR VERIFIED
+                </span>
+                <a 
+                  href={`https://stellar.expert/explorer/testnet/tx/${event.eventId}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="text-[10px] text-primary hover:underline font-mono"
+                >
+                  TX: {event.eventId.slice(0, 12)}...
+                </a>
+              </div>
             </div>
           </div>
         </div>
