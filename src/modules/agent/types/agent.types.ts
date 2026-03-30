@@ -51,13 +51,15 @@ export interface RegisterFormData {
   fullName: string;
   nationalId: string;
   phoneNumber: string;
-  fingerprint: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-    address?: string;
-    accuracy?: number;
-  };
+  fingerprint?: string;
+  // location?: {
+  //   latitude: number;
+  //   longitude: number;
+  //   address?: string;
+  //   accuracy?: number;
+  // };
+   location: Location;
+
 }
 export interface Distribution {
   id: string;
@@ -124,4 +126,13 @@ export interface RegisterFormData {
   phoneNumber: string;
   fingerprint?: string;
   location: Location;
+}
+
+
+export interface Location {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+  address?: string;
 }

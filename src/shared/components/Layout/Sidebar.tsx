@@ -46,13 +46,13 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
   ];
 
   const agentNavItems: NavItem[] = [
-    { path: '/agent/dashboard', icon: LayoutDashboard, label: 'Dashboard', badge: 3 },
+    { path: '/agent/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/agent/register', icon: UserPlus, label: 'Register' },
     { path: '/agent/verify', icon: CheckCircle, label: 'Verify' },
     { path: '/agent/distribute', icon: DollarSign, label: 'Distribute' },
     { path: '/agent/scan', icon: Scan, label: 'Scan Batch' },
     { path: '/agent/history', icon: History, label: 'History' },
-    { path: '/agent/offline', icon: WifiOff, label: 'Offline Queue', badge: 47 },
+    { path: '/agent/offline', icon: WifiOff, label: 'Offline Queue' },
   ];
 
   const navItems = userType === 'donor' ? donorNavItems : userType === 'manager' ? managerNavItems : agentNavItems;

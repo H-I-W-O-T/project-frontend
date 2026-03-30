@@ -947,7 +947,7 @@ export const useBeneficiary = () => {
       }
 
       // Generate nullifier from fingerprint (32 bytes)
-      const nullifierBytes = hexToBytes32(data.fingerprint);
+      const nullifierBytes = hexToBytes32(data.fingerprint ?? "");
       const nullifierHash = bytes32ToHex(nullifierBytes);
 
       // Create metadata
@@ -978,7 +978,7 @@ export const useBeneficiary = () => {
           contractId: IDENTITY_CONTRACT_ID,
           method: "register",
           args: [activeKey, nullifierBytes, metadataHashBytes],
-          address: activeKey
+          // address: activeKey
         });
         console.log('Blockchain registration successful');
       } catch (blockchainError) {
@@ -992,7 +992,7 @@ export const useBeneficiary = () => {
         fullName: data.fullName,
         nationalId: data.nationalId.trim(),
         phoneNumber: data.phoneNumber.trim(),
-        fingerprintHash: data.fingerprint,
+        fingerprintHash: data.fingerprint ?? "",
         nullifierHash: nullifierHash,
         metadataHash: metadataHash,
         biometricRegistered: true,

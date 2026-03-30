@@ -205,11 +205,48 @@ const Register: React.FC = () => {
   // };
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+//   const handleSubmit = async (e: React.FormEvent) => {
+//   e.preventDefault();
   
+//   if (!formData.fingerprint) {
+//     alert('Please provide biometric data to register');
+//     return;
+//   }
+
+//   try {
+//     console.log('Starting registration with data:', {
+//       fullName: formData.fullName,
+//       nationalId: formData.nationalId,
+//       phoneNumber: formData.phoneNumber,
+//       fingerprint: formData.fingerprint.substring(0, 20) + '...'
+//     });
+    
+//     const result = await register({
+//       fullName: formData.fullName,
+//       nationalId: formData.nationalId,
+//       phoneNumber: formData.phoneNumber,
+//       fingerprint: formData.fingerprint,
+//       location: location || undefined
+//     });
+    
+//     console.log('Registration successful:', result);
+//   } catch (err: any) {
+//     console.error('Registration failed:', err);
+//     // setError(err.message || 'Registration failed');
+//   }
+// };
+
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
   if (!formData.fingerprint) {
     alert('Please provide biometric data to register');
+    return;
+  }
+
+  if (!location) {
+    alert('Please enable location before registering');
     return;
   }
 
@@ -220,19 +257,18 @@ const Register: React.FC = () => {
       phoneNumber: formData.phoneNumber,
       fingerprint: formData.fingerprint.substring(0, 20) + '...'
     });
-    
+
     const result = await register({
       fullName: formData.fullName,
       nationalId: formData.nationalId,
       phoneNumber: formData.phoneNumber,
       fingerprint: formData.fingerprint,
-      location: location || undefined
+      location: location // ✅ ALWAYS defined now
     });
-    
+
     console.log('Registration successful:', result);
   } catch (err: any) {
     console.error('Registration failed:', err);
-    // setError(err.message || 'Registration failed');
   }
 };
 
