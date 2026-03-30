@@ -451,9 +451,25 @@ export const agentService = {
     return [];
   },
 
-  syncOfflineData: async () => {
+  syncOfflineData: async (options?: any) => {
     console.warn('syncOfflineData not fully implemented yet');
     return { success: true, synced: 0 };
+  },
+
+  getBatchDetails: async (batchId: string) => {
+    console.warn('getBatchDetails not fully implemented yet');
+    return {
+      id: batchId,
+      items: [],
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+  },
+  
+  // For useDistribution.ts
+  getDistributions: async (filters?: any) => {
+    console.warn('getDistributions not fully implemented yet');
+    return [];
   },
 
   // ✅ VERIFY

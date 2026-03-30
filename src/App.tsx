@@ -4,7 +4,6 @@ import { Layout } from './shared/components/Layout/Layout';
 import { DonorModule } from './modules/donor';
 import AgentModule from './modules/agent';
 import { ManagerModule } from './modules/manager';
-import { TestFlow } from './debug/TestFlow';
 import { StellarProvider, useStellar } from './contexts/StellarContext';
 import { Login } from './shared/pages/Login'; 
 import { Register } from './shared/pages/Register';
@@ -92,8 +91,6 @@ const AppRoutes = () => {
           element={userRole === 2 ? <AgentModule /> : <Navigate to="/" replace />} 
         />
         
-        {/* Debug/Internal Tools */}
-        <Route path="test" element={<TestFlow />} />
       </Route>
       
       {/* Global Catch-all: Send back to role-appropriate index */}
