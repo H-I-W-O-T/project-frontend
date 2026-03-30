@@ -292,19 +292,50 @@ export const useWallet = () => {
     checkConnection();
   }, []);
 
+  // const connectWallet = useCallback(async () => {
+  //   try {
+  //     if (!(await isConnected())) await requestAccess();
+  //     const result = await getAddress();
+  //     if (!result?.address) throw new Error("Access denied by user.");
+  //     localStorage.removeItem('manual_logout');
+  //     setPublicKey(result.address);
+  //     return result.address;
+  //   } catch (error) {
+  //     console.error("Connection error:", error);
+  //     throw error;
+  //   }
+  // }, []);
+
   const connectWallet = useCallback(async () => {
-    try {
-      if (!(await isConnected())) await requestAccess();
-      const result = await getAddress();
-      if (!result?.address) throw new Error("Access denied by user.");
-      localStorage.removeItem('manual_logout');
-      setPublicKey(result.address);
-      return result.address;
-    } catch (error) {
-      console.error("Connection error:", error);
-      throw error;
+  try {
+    // 1. Force the access request first. 
+    // On Vercel, isConnected() often returns false until a fresh handshake.
+    const userAllowed = await requestAccess();
+    
+    // 2. Some versions of Freighter return the address directly from requestAccess()
+    // but the most reliable way is to call getAddress() immediately after.
+    const result = await getAddress();
+
+    if (!result || !result.address) {
+      // This is where your previous error was being thrown.
+      throw new Error("Wallet connection was refused or the extension is locked.");
     }
-  }, []);
+
+    localStorage.removeItem('manual_logout');
+    setPublicKey(result.address);
+    return result.address;
+    
+  } catch (error: any) {
+    // Log the actual error object to see if it's a code error or a user rejection
+    console.error("Connection error detailed:", error);
+    
+    // Friendly error for the UI
+    if (error.message?.includes("User declined")) {
+      throw new Error("You declined the connection request in Freighter.");
+    }
+    throw error;
+  }
+}, []);
 
   const disconnectWallet = useCallback(() => {
     setPublicKey(null);
