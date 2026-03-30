@@ -69,7 +69,122 @@
 //   };
 // };
 
+//version - 2
 
+// import { useState } from 'react';
+// import { useWallet } from '../../../shared/hooks/useWallet';
+// import type { Beneficiary, RegisterFormData } from '../types/agent.types';
+
+// // --- HELPERS ---
+
+// const hexToBytes32 = (hex: string): Uint8Array => {
+//   const cleanHex = hex.replace('0x', '').padStart(64, '0');
+//   const array = new Uint8Array(32);
+//   for (let i = 0; i < 32; i++) {
+//     array[i] = parseInt(cleanHex.substring(i * 2, i * 2 + 2), 16);
+//   }
+//   return array;
+// };
+
+// const generateHashBytes = async (data: string): Promise<Uint8Array> => {
+//   const encoder = new TextEncoder();
+//   const dataBytes = encoder.encode(data);
+//   const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
+//   return new Uint8Array(hashBuffer);
+// };
+
+// // --- HOOK ---
+
+// export const useBeneficiary = () => {
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+//   const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
+  
+//   const { callContract, connectWallet, publicKey } = useWallet();
+
+//   const register = async (data: RegisterFormData) => {
+//     setLoading(true);
+//     setError(null);
+//     try {
+//       let activeKey = publicKey;
+//       if (!activeKey) {
+//         activeKey = await connectWallet();
+//       }
+
+//       const nullifier = hexToBytes32(data.fingerprint || ""); 
+//       const rawMetadata = `${data.fullName}-${data.nationalId}-${data.phoneNumber}`;
+//       const metadataHash = await generateHashBytes(rawMetadata);
+
+//       const IDENTITY_CONTRACT_ID: string = import.meta.env.VITE_IDENTITY_ADDRESS ?? "";
+//       if (!IDENTITY_CONTRACT_ID) {
+//         throw new Error("VITE_IDENTITY_ADDRESS is missing in .env");
+//       }
+
+//       const txResponse = await callContract({
+//         contractId: IDENTITY_CONTRACT_ID,
+//         method: "register",
+//         args: [activeKey, nullifier, metadataHash],
+//         address: activeKey
+//       });
+
+//       // FIX: Map EVERY required field from your Beneficiary interface
+//       const result: Beneficiary = {
+//         id: data.nationalId, // Using nationalId as the ID
+//         fullName: data.fullName,
+//         nationalId: data.nationalId,
+//         phoneNumber: data.phoneNumber,
+//         fingerprintHash: data.fingerprint,
+//         biometricRegistered: true,
+//         eligibility: {
+//           isEligible: true,
+//           score: 100,
+//           lastAssessed: new Date().toISOString(),
+//         },
+//         location: {
+//           latitude: data.location.latitude,
+//           longitude: data.location.longitude,
+//           address: data.location.address || "Unknown Location",
+//         },
+//         registrationDate: new Date().toISOString(),
+//       };
+
+//       // Set the state and return
+//       setBeneficiary(result);
+//       return result;
+
+//     } catch (err: any) {
+//       console.error("Registration error:", err);
+//       setError(err.message || "On-chain registration failed");
+//       throw err;
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const verify = async (fingerprintHash: string) => {
+//     setLoading(true);
+//     setError(null);
+//     try {
+//       const activeKey = publicKey || await connectWallet();
+//       const nullifier = hexToBytes32(fingerprintHash);
+//       const IDENTITY_CONTRACT_ID: string = import.meta.env.VITE_IDENTITY_ADDRESS ?? "";
+
+//       return await callContract({
+//         contractId: IDENTITY_CONTRACT_ID,
+//         method: "verify",
+//         args: [activeKey, nullifier],
+//         address: activeKey
+//       });
+//     } catch (err: any) {
+//       setError(err.message);
+//       throw err;
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return { loading, error, beneficiary, register, verify, clearBeneficiary: () => setBeneficiary(null) };
+// };
 
 import { useState } from 'react';
 import { useWallet } from '../../../shared/hooks/useWallet';
@@ -78,6 +193,7 @@ import type { Beneficiary, RegisterFormData } from '../types/agent.types';
 // --- HELPERS ---
 
 const hexToBytes32 = (hex: string): Uint8Array => {
+  // Remove 0x prefix if present and ensure 64 characters (32 bytes)
   const cleanHex = hex.replace('0x', '').padStart(64, '0');
   const array = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
@@ -93,12 +209,29 @@ const generateHashBytes = async (data: string): Promise<Uint8Array> => {
   return new Uint8Array(hashBuffer);
 };
 
+const bytes32ToHex = (bytes: Uint8Array): string => {
+  return '0x' + Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+// Store metadata in localStorage with the nullifier as key
+const storeOffChainMetadata = (nullifierHash: string, metadata: any) => {
+  const key = `beneficiary_${nullifierHash}`;
+  localStorage.setItem(key, JSON.stringify({
+    ...metadata,
+    registrationDate: new Date().toISOString(),
+    nullifierHash
+  }));
+};
+
 // --- HOOK ---
 
 export const useBeneficiary = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [beneficiary, setBeneficiary] = useState<Beneficiary | null>(null);
+  const [registrationHash, setRegistrationHash] = useState<string | null>(null);
   
   const { callContract, connectWallet, publicKey } = useWallet();
 
@@ -111,45 +244,67 @@ export const useBeneficiary = () => {
         activeKey = await connectWallet();
       }
 
-      const nullifier = hexToBytes32(data.fingerprint || ""); 
-      const rawMetadata = `${data.fullName}-${data.nationalId}-${data.phoneNumber}`;
-      const metadataHash = await generateHashBytes(rawMetadata);
+      // Generate nullifier from fingerprint (32 bytes)
+      const nullifierBytes = hexToBytes32(data.fingerprint);
+      const nullifierHash = bytes32ToHex(nullifierBytes);
+
+      // Create metadata JSON and hash it
+      const metadata = {
+        fullName: data.fullName,
+        nationalId: data.nationalId,
+        phoneNumber: data.phoneNumber,
+        registrationLocation: data.location || null,
+        registeredAt: new Date().toISOString(),
+        registeredBy: activeKey
+      };
+      
+      const metadataString = JSON.stringify(metadata);
+      const metadataHashBytes = await generateHashBytes(metadataString);
+      const metadataHash = bytes32ToHex(metadataHashBytes);
+
+      // Store metadata locally (off-chain)
+      storeOffChainMetadata(nullifierHash, metadata);
 
       const IDENTITY_CONTRACT_ID: string = import.meta.env.VITE_IDENTITY_ADDRESS ?? "";
       if (!IDENTITY_CONTRACT_ID) {
         throw new Error("VITE_IDENTITY_ADDRESS is missing in .env");
       }
 
+      // Call the contract's register method
+      // Note: The contract expects (agent, nullifier, metadata_hash)
       const txResponse = await callContract({
         contractId: IDENTITY_CONTRACT_ID,
         method: "register",
-        args: [activeKey, nullifier, metadataHash],
+        args: [activeKey, nullifierBytes, metadataHashBytes],
         address: activeKey
       });
 
-      // FIX: Map EVERY required field from your Beneficiary interface
+      // Create beneficiary object for UI display
       const result: Beneficiary = {
-        id: data.nationalId, // Using nationalId as the ID
+        id: nullifierHash,
         fullName: data.fullName,
         nationalId: data.nationalId,
         phoneNumber: data.phoneNumber,
         fingerprintHash: data.fingerprint,
+        nullifierHash: nullifierHash,
+        metadataHash: metadataHash,
         biometricRegistered: true,
         eligibility: {
           isEligible: true,
           score: 100,
           lastAssessed: new Date().toISOString(),
         },
-        location: {
+        location: data.location ? {
           latitude: data.location.latitude,
           longitude: data.location.longitude,
           address: data.location.address || "Unknown Location",
-        },
+        } : undefined,
         registrationDate: new Date().toISOString(),
+        isActive: true,
       };
 
-      // Set the state and return
       setBeneficiary(result);
+      setRegistrationHash(metadataHash);
       return result;
 
     } catch (err: any) {
@@ -166,13 +321,13 @@ export const useBeneficiary = () => {
     setError(null);
     try {
       const activeKey = publicKey || await connectWallet();
-      const nullifier = hexToBytes32(fingerprintHash);
+      const nullifierBytes = hexToBytes32(fingerprintHash);
       const IDENTITY_CONTRACT_ID: string = import.meta.env.VITE_IDENTITY_ADDRESS ?? "";
 
       return await callContract({
         contractId: IDENTITY_CONTRACT_ID,
         method: "verify",
-        args: [activeKey, nullifier],
+        args: [activeKey, nullifierBytes],
         address: activeKey
       });
     } catch (err: any) {
@@ -183,5 +338,29 @@ export const useBeneficiary = () => {
     }
   };
 
-  return { loading, error, beneficiary, register, verify, clearBeneficiary: () => setBeneficiary(null) };
+  const getBeneficiary = async (fingerprintHash: string) => {
+    setLoading(true);
+    try {
+      const nullifierHash = bytes32ToHex(hexToBytes32(fingerprintHash));
+      const storedData = localStorage.getItem(`beneficiary_${nullifierHash}`);
+      
+      if (storedData) {
+        return JSON.parse(storedData);
+      }
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { 
+    loading, 
+    error, 
+    beneficiary, 
+    registrationHash,
+    register, 
+    verify, 
+    getBeneficiary,
+    clearBeneficiary: () => setBeneficiary(null) 
+  };
 };

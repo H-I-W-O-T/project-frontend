@@ -1,26 +1,64 @@
 
 
+// export interface Beneficiary {
+//   id: string;
+//   fullName: string;
+//   nationalId: string;
+//   phoneNumber: string;
+//   fingerprintHash?: string;
+//   biometricRegistered: boolean;
+//   eligibility: {
+//     isEligible: boolean;
+//     score: number;
+//     lastAssessed: string;
+//     reason?: string;
+//   };
+//   location: {
+//     latitude: number;
+//     longitude: number;
+//     address: string;
+//   };
+//   registrationDate: string;
+// }
+
+
+
+// types/agent.types.ts
 export interface Beneficiary {
-  id: string;
+  id: string; // nullifier hash
   fullName: string;
   nationalId: string;
   phoneNumber: string;
-  fingerprintHash?: string;
+  fingerprintHash: string;
+  nullifierHash: string;
+  metadataHash: string;
   biometricRegistered: boolean;
   eligibility: {
     isEligible: boolean;
     score: number;
     lastAssessed: string;
-    reason?: string;
   };
-  location: {
+  location?: {
     latitude: number;
     longitude: number;
     address: string;
   };
   registrationDate: string;
+  isActive: boolean;
 }
 
+export interface RegisterFormData {
+  fullName: string;
+  nationalId: string;
+  phoneNumber: string;
+  fingerprint: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+    accuracy?: number;
+  };
+}
 export interface Distribution {
   id: string;
   beneficiaryId: string;
