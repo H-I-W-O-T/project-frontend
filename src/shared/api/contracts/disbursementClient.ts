@@ -68,7 +68,10 @@ export const disbursementClient = (wallet: any) => {
       batchId?: string
     ) {
       // For Option<BytesN<32>>, if it's undefined, we pass an ScVal representing Void/None
-      const batchVal = batchId ? scBytes32(batchId) : nativeToScVal(void 0);
+      // const batchVal = batchId ? scBytes32(batchId) : nativeToScVal(void 0);
+      const batchVal = batchId
+  ? xdr.ScVal.scvVec([scBytes32(batchId)]) // Some(value)
+  : xdr.ScVal.scvVoid();   
 
       return wallet.callContract({
         address,
