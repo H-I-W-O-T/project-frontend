@@ -5,7 +5,6 @@ import {
   BarChart3,
   ShieldCheck,
   PlusCircle,
-  MapPin,
   Users,
   Package,
   UserPlus,
@@ -41,8 +40,6 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
 
   const managerNavItems: NavItem[] = [
     { path: '/manager/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/manager/create', icon: PlusCircle, label: 'Create Program' },
-    { path: '/manager/geofence', icon: MapPin, label: 'Geofence Map' },
     { path: '/manager/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/manager/agents', icon: Users, label: 'Field Agents' },
     { path: '/manager/inventory', icon: Package, label: 'Inventory' },
