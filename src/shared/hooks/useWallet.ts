@@ -272,6 +272,12 @@ export const useWallet = () => {
 
   useEffect(() => {
     const checkConnection = async () => {
+      const wasManualLogout = localStorage.getItem('manual_logout') === 'true';
+    
+      if (wasManualLogout) {
+        setIsInitializing(false);
+        return; // Stop the auto-connect
+      }
       try {
         if (await isConnected()) {
           const result = await getAddress();
@@ -291,12 +297,18 @@ export const useWallet = () => {
       if (!(await isConnected())) await requestAccess();
       const result = await getAddress();
       if (!result?.address) throw new Error("Access denied by user.");
+      localStorage.removeItem('manual_logout');
       setPublicKey(result.address);
       return result.address;
     } catch (error) {
       console.error("Connection error:", error);
       throw error;
     }
+  }, []);
+
+  const disconnectWallet = useCallback(() => {
+    setPublicKey(null);
+    localStorage.setItem('manual_logout', 'true');
   }, []);
 
   /**
@@ -424,6 +436,7 @@ export const useWallet = () => {
     publicKey,
     isInitializing,
     connectWallet,
+    disconnectWallet,
     callContract,
     queryContract,
   };

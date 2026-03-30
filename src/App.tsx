@@ -13,7 +13,7 @@ import { Register } from './shared/pages/Register';
 type UserRoleType = 'donor' | 'manager' | 'agent';
 
 const AppRoutes = () => {
-  const { publicKey, userProfile, userRole, isLoaded, needsRegistration } = useStellar();
+  const { publicKey, userProfile, userRole, isLoaded, needsRegistration, disconnect } = useStellar();
 
   // 1. Loading State: Prevent UI flicker while checking Freighter/Contract
   if (!isLoaded) {
@@ -64,6 +64,10 @@ const AppRoutes = () => {
             userType={currentUserType} 
             userName={userProfile?.name || 'User'} 
             walletAddress={publicKey}
+            onLogout={() => {
+              disconnect(); // This calls the function we added to useWallet
+              window.location.href = '/'; // Refresh to trigger the "needsRegistration" or "Connect" view
+            }}
           />
         }
       >

@@ -20,6 +20,7 @@ interface StellarContextType {
   userProfile: UserProfile | null;
   userRole: number | null;
   connect: () => Promise<string | null>;
+  disconnect: () => void;
   callContract: ReturnType<typeof useWallet>['callContract'];
   queryContract: ReturnType<typeof useWallet>['queryContract'];
   clients: {
@@ -90,6 +91,7 @@ export const StellarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     userProfile,
     userRole: userProfile !== null ? userProfile.role : null,
     connect: wallet.connectWallet, 
+    disconnect: wallet.disconnectWallet,
     callContract: wallet.callContract,
     queryContract: wallet.queryContract,
     clients, 
