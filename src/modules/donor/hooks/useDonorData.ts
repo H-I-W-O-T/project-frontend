@@ -56,6 +56,8 @@ export const useDonorData = () => {
         return;
       }
 
+      console.log("Saved Program IDs:", savedIds);
+
       // 3. FETCH PROGRAM STATES
       const programResults = await Promise.all(
         savedIds.map(async (id: string) => {

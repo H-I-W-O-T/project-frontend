@@ -87,6 +87,81 @@ export const FundProgram = () => {
     setRadius(radiusValue);
   };
 
+  // const onSubmit = async (data: FundProgramForm) => {
+  //   if (!crisisCenter || !radius) {
+  //     toast.warning('Please define the crisis center and coverage radius');
+  //     return;
+  //   }
+
+  //   setIsSubmitting(true);
+  //   setTxStep('approving');
+
+  //   try {
+  //     // 1. Ensure wallet is connected
+  //     const activeAddress = publicKey || (await connect());
+
+  //     // 2. Prepare Geofence Data
+  //     const SCALE = 1_000_000n;
+  //     const geofencePolygon = circleToPolygon(crisisCenter, radius).map(([lat, lon]) => ({
+  //       lat: BigInt(Math.round(lat * Number(SCALE))),
+  //       lon: BigInt(Math.round(lon * Number(SCALE))),
+  //     }));
+
+  //     // 3. Generate a Unique Hex Program ID (32 bytes)
+  //     const generatedProgramId = Array.from(window.crypto.getRandomValues(new Uint8Array(32)))
+  //       .map(b => b.toString(16).padStart(2, "0"))
+  //       .join("");
+
+  //     // --- STEP 1: TOKEN APPROVAL ---
+  //     // This gives the Disbursement Contract permission to pull the budget from your wallet
+  //     await clients.token.approve(
+  //       activeAddress, 
+  //       CONTRACTS.DISBURSEMENT, 
+  //       BigInt(data.budget), 
+  //       10000 
+  //     );
+
+  //     setTxStep('creating');
+
+  //     // --- STEP 2: CREATE PROGRAM ON-CHAIN ---
+  //     const now = Math.floor(Date.now() / 1000);
+  //     const createResult = await clients.disbursement.createProgram(
+  //       activeAddress,
+  //       generatedProgramId,
+  //       BigInt(data.amountPerPerson),
+  //       BigInt(data.budget),
+  //       data.frequencyDays,
+  //       geofencePolygon,
+  //       BigInt(now),
+  //       BigInt(now + 2592000) // 30 day duration
+  //     );
+
+  //     // --- STEP 3: SAVE TO LOCAL DISCOVERY INDEX ---
+  //     // This is the CRITICAL part for your dashboard to see the program!
+  //     const storageKey = `funded_programs_${activeAddress}`;
+  //     const existingIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      
+  //     // Add the new ID to our local list
+  //     const updatedIds = [...new Set([...existingIds, generatedProgramId])];
+  //     localStorage.setItem(storageKey, JSON.stringify(updatedIds));
+
+  //     setTxStep('success');
+  //     toast.success('Smart Contract Deployed Successfully!');
+      
+  //     // Small delay so the user can see the "Success" state in the UI
+  //     setTimeout(() => {
+  //       navigate(`/donor/dashboard`);
+  //     }, 1500);
+      
+  //   } catch (error: any) {
+  //     console.error("Deployment Error:", error);
+  //     setTxStep('idle');
+  //     toast.error(error.message || 'Transaction failed. Check Freighter for details.');
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
   const onSubmit = async (data: FundProgramForm) => {
     if (!crisisCenter || !radius) {
       toast.warning('Please define the crisis center and coverage radius');
@@ -97,66 +172,73 @@ export const FundProgram = () => {
     setTxStep('approving');
 
     try {
-      // 1. Ensure wallet is connected
       const activeAddress = publicKey || (await connect());
+      
+      // --- 1. CONSTANTS & SCALING ---
+      const STR_SCALE = 10_000_000n; // 7 Decimals for Stellar Assets (USDC)
+      const GEO_SCALE = 1_000_000n;  // Scale for Lat/Lon coordinates
+      
+      const scaledBudget = BigInt(Math.round(data.budget)) * STR_SCALE;
+      const scaledAmount = BigInt(Math.round(data.amountPerPerson)) * STR_SCALE;
 
-      // 2. Prepare Geofence Data
-      const SCALE = 1_000_000n;
-      const geofencePolygon = circleToPolygon(crisisCenter, radius).map(([lat, lon]) => ({
-        lat: BigInt(Math.round(lat * Number(SCALE))),
-        lon: BigInt(Math.round(lon * Number(SCALE))),
-      }));
-
-      // 3. Generate a Unique Hex Program ID (32 bytes)
+      // --- 2. FORMAT PROGRAM ID (Hex String -> Uint8Array) ---
       const generatedProgramId = Array.from(window.crypto.getRandomValues(new Uint8Array(32)))
         .map(b => b.toString(16).padStart(2, "0"))
         .join("");
+      
+      // Convert to the byte array format the contract expects (BytesN<32>)
+      const programIdBytes = new Uint8Array(
+        generatedProgramId.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+      );
+
+      // --- 3. PREPARE GEOFENCE ---
+      const geofencePolygon = circleToPolygon(crisisCenter, radius).map(([lat, lon]) => ({
+        lat: BigInt(Math.round(lat * Number(GEO_SCALE))),
+        lon: BigInt(Math.round(lon * Number(GEO_SCALE))),
+      }));
 
       // --- STEP 1: TOKEN APPROVAL ---
-      // This gives the Disbursement Contract permission to pull the budget from your wallet
+      // This allows the Disbursement Contract to pull the 'scaledBudget' from the donor
       await clients.token.approve(
         activeAddress, 
         CONTRACTS.DISBURSEMENT, 
-        BigInt(data.budget), 
-        10000 
+        scaledBudget, 
+        2000 // Valid for ~3 hours (2000 ledgers)
       );
 
       setTxStep('creating');
 
       // --- STEP 2: CREATE PROGRAM ON-CHAIN ---
       const now = Math.floor(Date.now() / 1000);
-      const createResult = await clients.disbursement.createProgram(
+      
+      // Ensure the order matches your Rust: donor, id, amount, budget, freq, geo, start, end
+      await clients.disbursement.createProgram(
         activeAddress,
+        // programIdBytes,
         generatedProgramId,
-        BigInt(data.amountPerPerson),
-        BigInt(data.budget),
+        scaledAmount,
+        scaledBudget,
         data.frequencyDays,
         geofencePolygon,
         BigInt(now),
-        BigInt(now + 2592000) // 30 day duration
+        BigInt(now + 2592000) // 30 days
       );
 
-      // --- STEP 3: SAVE TO LOCAL DISCOVERY INDEX ---
-      // This is the CRITICAL part for your dashboard to see the program!
+      // --- STEP 3: INDEX FOR DASHBOARD ---
       const storageKey = `funded_programs_${activeAddress}`;
       const existingIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      
-      // Add the new ID to our local list
-      const updatedIds = [...new Set([...existingIds, generatedProgramId])];
-      localStorage.setItem(storageKey, JSON.stringify(updatedIds));
+      localStorage.setItem(storageKey, JSON.stringify([...new Set([...existingIds, generatedProgramId])]));
 
       setTxStep('success');
-      toast.success('Smart Contract Deployed Successfully!');
-      
-      // Small delay so the user can see the "Success" state in the UI
-      setTimeout(() => {
-        navigate(`/donor/dashboard`);
-      }, 1500);
+      toast.success('Program Created and Funded!');
+      setTimeout(() => navigate(`/donor/dashboard`), 1500);
       
     } catch (error: any) {
       console.error("Deployment Error:", error);
       setTxStep('idle');
-      toast.error(error.message || 'Transaction failed. Check Freighter for details.');
+      // Provide a more helpful error message
+      const msg = error.message?.includes("User Rejected") ? "Transaction cancelled." : "Transaction failed. Ensure you have enough USDC and XLM.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
