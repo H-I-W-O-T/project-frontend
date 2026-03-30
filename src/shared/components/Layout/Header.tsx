@@ -5,11 +5,12 @@ interface HeaderProps {
   userType: 'donor' | 'manager' | 'agent';
   userName: string;
   userAvatar?: string;
+  walletAddress?: string;
   onMenuClick?: () => void;
   onLogout?: () => void;
 }
 
-export const Header = ({ userType, userName, userAvatar, onMenuClick, onLogout }: HeaderProps) => {
+export const Header = ({ userType, userName, userAvatar, walletAddress, onMenuClick, onLogout }: HeaderProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
@@ -27,6 +28,10 @@ export const Header = ({ userType, userName, userAvatar, onMenuClick, onLogout }
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const truncatedAddress = walletAddress 
+    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+    : '';
+    
   return (
     <header className="bg-gradient-brand text-white shadow-lg sticky top-0 z-40">
       <div className="container-padding py-3">
