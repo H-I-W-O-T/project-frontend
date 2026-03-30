@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
           <ul className="divide-y divide-gray-200">
             <li className="px-4 py-4 sm:px-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-blue-600 truncate">Distribution to Abebe Kebede</p>
+                <p className="text-sm font-medium text-blue-600 truncate">Distribution to  Kebede</p>
                 <div className="ml-2 flex-shrink-0 flex">
                   <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                     Completed
