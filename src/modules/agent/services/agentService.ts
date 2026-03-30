@@ -440,9 +440,20 @@ export const agentService = {
 
       isActive: true
     };
+    
 
     mockBeneficiaries.set(newBeneficiary.id, newBeneficiary);
     return newBeneficiary;
+  },
+
+  getDistributionHistory: async (filters?: any) => {
+    console.warn('getDistributionHistory not fully implemented yet');
+    return [];
+  },
+
+  syncOfflineData: async () => {
+    console.warn('syncOfflineData not fully implemented yet');
+    return { success: true, synced: 0 };
   },
 
   // ✅ VERIFY
