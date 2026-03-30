@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Card } from '../../../shared/components/Common/Card';
@@ -10,6 +10,8 @@ import { GeofenceCircleMap } from '../../../shared/components/Forms/GeofenceMap'
 import { useToast } from '../../../shared/components/Common/ToastContainer';
 import { useStellar } from '../../../contexts/StellarContext'; 
 import { CONTRACTS } from '../../../shared/api/contracts/config';
+import { parseScVal } from '../../../shared/api/contracts/utils';
+import { Wallet, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 interface FundProgramForm {
   name: string;
@@ -39,10 +41,25 @@ const regionOptions = [
   { value: 'multiple', label: 'Multiple Regions' },
 ];
 
-const StepIcon = ({ status }: { status: 'pending' | 'loading' | 'complete' }) => {
-  if (status === 'loading') return <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />;
-  if (status === 'complete') return <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-[10px] font-bold">✓</div>;
-  return <div className="w-5 h-5 border-2 border-white/20 rounded-full" />;
+const STR_SCALE = 10_000_000n;
+
+const StepIcon = ({ status }: { status: 'pending' | 'loading' | 'complete' | 'error' }) => {
+  if (status === 'loading') {
+    return (
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <Loader2 className="w-4 h-4 text-primary animate-pulse" />
+      </div>
+    );
+  }
+  if (status === 'complete') {
+    return (
+      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/20">
+        <CheckCircle2 className="w-5 h-5 text-white" />
+      </div>
+    );
+  }
+  return <div className="w-8 h-8 border-2 border-gray-200 rounded-full bg-white shadow-inner" />;
 };
 
 const circleToPolygon = (center: [number, number], radiusInMeters: number, points = 32): [number, number][] => {
@@ -64,107 +81,53 @@ const circleToPolygon = (center: [number, number], radiusInMeters: number, point
 export const FundProgram = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const { clients, publicKey, connect } = useStellar();
+  const { clients, publicKey, connect, queryContract } = useStellar();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txStep, setTxStep] = useState<'idle' | 'approving' | 'creating' | 'success'>('idle');
   const [crisisCenter, setCrisisCenter] = useState<[number, number]>([9.03, 38.74]);
   const [radius, setRadius] = useState<number>(50000);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FundProgramForm>({
     defaultValues: {
-      name: '', budget: 50000, amountPerPerson: 10, frequencyDays: 30,
+      name: '', budget: 100, amountPerPerson: 10, frequencyDays: 30,
       aidType: 'food', description: '', targetRegion: 'amhara',
     },
   });
 
   const budget = watch('budget');
   const amountPerPerson = watch('amountPerPerson');
+  const aidType = watch('aidType');
+  const targetRegion = watch('targetRegion');
   const estimatedBeneficiaries = budget && amountPerPerson ? Math.floor(budget / amountPerPerson) : 0;
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!publicKey || !queryContract) return;
+      try {
+        const raw = await queryContract({
+          contractId: CONTRACTS.TOKEN,
+          method: "balance",
+          args: [publicKey]
+        });
+        const balance = Number(parseScVal(raw) || 0) / Number(STR_SCALE);
+        setWalletBalance(balance);
+      } catch (err) {
+        console.error("Balance fetch failed:", err);
+      }
+    };
+    fetchBalance();
+  }, [publicKey, queryContract]);
 
   const handleGeofenceChange = (center: [number, number], radiusValue: number) => {
     setCrisisCenter(center);
     setRadius(radiusValue);
   };
 
-  // const onSubmit = async (data: FundProgramForm) => {
-  //   if (!crisisCenter || !radius) {
-  //     toast.warning('Please define the crisis center and coverage radius');
-  //     return;
-  //   }
-
-  //   setIsSubmitting(true);
-  //   setTxStep('approving');
-
-  //   try {
-  //     // 1. Ensure wallet is connected
-  //     const activeAddress = publicKey || (await connect());
-
-  //     // 2. Prepare Geofence Data
-  //     const SCALE = 1_000_000n;
-  //     const geofencePolygon = circleToPolygon(crisisCenter, radius).map(([lat, lon]) => ({
-  //       lat: BigInt(Math.round(lat * Number(SCALE))),
-  //       lon: BigInt(Math.round(lon * Number(SCALE))),
-  //     }));
-
-  //     // 3. Generate a Unique Hex Program ID (32 bytes)
-  //     const generatedProgramId = Array.from(window.crypto.getRandomValues(new Uint8Array(32)))
-  //       .map(b => b.toString(16).padStart(2, "0"))
-  //       .join("");
-
-  //     // --- STEP 1: TOKEN APPROVAL ---
-  //     // This gives the Disbursement Contract permission to pull the budget from your wallet
-  //     await clients.token.approve(
-  //       activeAddress, 
-  //       CONTRACTS.DISBURSEMENT, 
-  //       BigInt(data.budget), 
-  //       10000 
-  //     );
-
-  //     setTxStep('creating');
-
-  //     // --- STEP 2: CREATE PROGRAM ON-CHAIN ---
-  //     const now = Math.floor(Date.now() / 1000);
-  //     const createResult = await clients.disbursement.createProgram(
-  //       activeAddress,
-  //       generatedProgramId,
-  //       BigInt(data.amountPerPerson),
-  //       BigInt(data.budget),
-  //       data.frequencyDays,
-  //       geofencePolygon,
-  //       BigInt(now),
-  //       BigInt(now + 2592000) // 30 day duration
-  //     );
-
-  //     // --- STEP 3: SAVE TO LOCAL DISCOVERY INDEX ---
-  //     // This is the CRITICAL part for your dashboard to see the program!
-  //     const storageKey = `funded_programs_${activeAddress}`;
-  //     const existingIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      
-  //     // Add the new ID to our local list
-  //     const updatedIds = [...new Set([...existingIds, generatedProgramId])];
-  //     localStorage.setItem(storageKey, JSON.stringify(updatedIds));
-
-  //     setTxStep('success');
-  //     toast.success('Smart Contract Deployed Successfully!');
-      
-  //     // Small delay so the user can see the "Success" state in the UI
-  //     setTimeout(() => {
-  //       navigate(`/donor/dashboard`);
-  //     }, 1500);
-      
-  //   } catch (error: any) {
-  //     console.error("Deployment Error:", error);
-  //     setTxStep('idle');
-  //     toast.error(error.message || 'Transaction failed. Check Freighter for details.');
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
-
   const onSubmit = async (data: FundProgramForm) => {
-    if (!crisisCenter || !radius) {
-      toast.warning('Please define the crisis center and coverage radius');
+    if (data.budget > walletBalance) {
+      toast.error(`Insufficient funds. You have ${walletBalance} USDC.`);
       return;
     }
 
@@ -173,58 +136,35 @@ export const FundProgram = () => {
 
     try {
       const activeAddress = publicKey || (await connect());
-      
-      // --- 1. CONSTANTS & SCALING ---
-      const STR_SCALE = 10_000_000n; // 7 Decimals for Stellar Assets (USDC)
-      const GEO_SCALE = 1_000_000n;  // Scale for Lat/Lon coordinates
-      
+      const GEO_SCALE = 1_000_000n;
       const scaledBudget = BigInt(Math.round(data.budget)) * STR_SCALE;
       const scaledAmount = BigInt(Math.round(data.amountPerPerson)) * STR_SCALE;
 
-      // --- 2. FORMAT PROGRAM ID (Hex String -> Uint8Array) ---
       const generatedProgramId = Array.from(window.crypto.getRandomValues(new Uint8Array(32)))
         .map(b => b.toString(16).padStart(2, "0"))
         .join("");
       
-      // Convert to the byte array format the contract expects (BytesN<32>)
-      const programIdBytes = new Uint8Array(
-        generatedProgramId.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
-      );
-
-      // --- 3. PREPARE GEOFENCE ---
       const geofencePolygon = circleToPolygon(crisisCenter, radius).map(([lat, lon]) => ({
         lat: BigInt(Math.round(lat * Number(GEO_SCALE))),
         lon: BigInt(Math.round(lon * Number(GEO_SCALE))),
       }));
 
-      // --- STEP 1: TOKEN APPROVAL ---
-      // This allows the Disbursement Contract to pull the 'scaledBudget' from the donor
-      await clients.token.approve(
-        activeAddress, 
-        CONTRACTS.DISBURSEMENT, 
-        scaledBudget, 
-        2000 // Valid for ~3 hours (2000 ledgers)
-      );
+      await clients.token.approve(activeAddress, CONTRACTS.DISBURSEMENT, scaledBudget, 2000);
 
       setTxStep('creating');
 
-      // --- STEP 2: CREATE PROGRAM ON-CHAIN ---
       const now = Math.floor(Date.now() / 1000);
-      
-      // Ensure the order matches your Rust: donor, id, amount, budget, freq, geo, start, end
       await clients.disbursement.createProgram(
         activeAddress,
-        // programIdBytes,
         generatedProgramId,
         scaledAmount,
         scaledBudget,
         data.frequencyDays,
         geofencePolygon,
         BigInt(now),
-        BigInt(now + 2592000) // 30 days
+        BigInt(now + 2592000)
       );
 
-      // --- STEP 3: INDEX FOR DASHBOARD ---
       const storageKey = `funded_programs_${activeAddress}`;
       const existingIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
       localStorage.setItem(storageKey, JSON.stringify([...new Set([...existingIds, generatedProgramId])]));
@@ -234,31 +174,29 @@ export const FundProgram = () => {
       setTimeout(() => navigate(`/donor/dashboard`), 1500);
       
     } catch (error: any) {
-      console.error("Deployment Error:", error);
       setTxStep('idle');
-      // Provide a more helpful error message
-      const msg = error.message?.includes("User Rejected") ? "Transaction cancelled." : "Transaction failed. Ensure you have enough USDC and XLM.";
-      toast.error(msg);
+      toast.error(error.message?.includes("User Rejected") ? "Transaction cancelled." : "Transaction failed.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatRadius = (meters: number): string => {
-    if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
-    return `${meters} m`;
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      <div>
-        <h1 className="text-3xl font-bold text-gradient">Fund New Aid Program</h1>
-        <p className="text-gray-600 mt-1">Deploy humanitarian aid directly to the Stellar blockchain.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gradient">Fund New Aid Program</h1>
+          <p className="text-gray-600 mt-1">Deploy humanitarian aid directly to the Stellar blockchain.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-lg border border-primary/20">
+          <Wallet className="text-primary" size={20} />
+          <span className="font-bold text-primary">{walletBalance.toLocaleString()} USDC</span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">📋 Program Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 tracking-tight">📋 Program Details</h2>
           <div className="space-y-4">
             <Input label="Program Name" {...register('name', { required: 'Required' })} error={errors.name?.message} required />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,60 +207,124 @@ export const FundProgram = () => {
           </div>
         </Card>
 
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">💰 Budget & Distribution</h2>
+        <Card className="p-6 border-l-4 border-primary">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 tracking-tight">💰 Budget & Distribution</h2>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Total Budget (USDC)" type="number" {...register('budget', { required: 'Required', valueAsNumber: true })} />
-              <Input label="Amount Per Person (USDC)" type="number" {...register('amountPerPerson', { required: 'Required', valueAsNumber: true })} />
+              <Input 
+                label="Total Budget (USDC)" 
+                type="number" 
+                {...register('budget', { 
+                  required: 'Required', 
+                  valueAsNumber: true,
+                  min: { value: 1, message: 'Must be at least 1 USDC' },
+                  validate: (val) => val <= walletBalance || 'Insufficient wallet balance'
+                })} 
+                error={errors.budget?.message}
+              />
+              <Input 
+                label="Amount Per Person (USDC)" 
+                type="number" 
+                {...register('amountPerPerson', { 
+                  required: 'Required', 
+                  valueAsNumber: true,
+                  min: { value: 0.1, message: 'Must be at least 0.1 USDC' },
+                  validate: (val) => val <= budget || 'Cannot exceed total budget'
+                })} 
+                error={errors.amountPerPerson?.message}
+              />
             </div>
-            <Input label="Distribution Frequency (Days)" type="number" {...register('frequencyDays', { valueAsNumber: true })} />
-            {estimatedBeneficiaries > 0 && (
-              <div className="p-4 bg-primary-light/10 rounded-lg border border-primary-light/30 text-primary font-bold">
-                {estimatedBeneficiaries.toLocaleString()} estimated beneficiaries
+            <Input 
+              label="Distribution Frequency (Days)" 
+              type="number" 
+              {...register('frequencyDays', { 
+                valueAsNumber: true,
+                min: { value: 1, message: 'Must be at least 1 day' }
+              })} 
+              error={errors.frequencyDays?.message}
+            />
+
+            {errors.budget?.type === 'validate' && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md border border-red-200">
+                <AlertCircle size={16} />
+                <span className="text-sm font-medium">Warning: Budget exceeds available balance.</span>
               </div>
             )}
           </div>
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">🗺️ Crisis Zone</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 tracking-tight">🗺️ Crisis Zone</h2>
           <GeofenceCircleMap onChange={handleGeofenceChange} initialCenter={crisisCenter} initialRadius={radius} height="400px" />
         </Card>
 
-        {/* Updated Summary Card with Transaction Stepper */}
-        <Card className={`p-6 transition-all duration-500 ${isSubmitting ? 'bg-slate-900' : 'bg-gradient-brand'} text-white`}>
-          <h2 className="text-lg font-semibold mb-3">Program Summary</h2>
-          
-          {isSubmitting && (
-            <div className="mb-6 space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
-              <div className="flex items-center gap-3">
-                <StepIcon status={txStep === 'approving' ? 'loading' : (txStep === 'creating' || txStep === 'success' ? 'complete' : 'pending')} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Step 1: Token Allowance</p>
-                  <p className="text-xs text-white/60">Approving {budget} USDC for disbursement</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <StepIcon status={txStep === 'creating' ? 'loading' : (txStep === 'success' ? 'complete' : 'pending')} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Step 2: Smart Contract Deployment</p>
-                  <p className="text-xs text-white/60">Registering program on Stellar</p>
-                </div>
-              </div>
-            </div>
-          )}
+        <Card className={`relative overflow-hidden transition-all duration-700 ${isSubmitting ? 'border-primary shadow-2xl scale-[1.01]' : 'border-gray-100'}`}>
+          <div className={`p-4 ${isSubmitting ? 'bg-primary text-white' : 'bg-gray-50 text-gray-900'} transition-colors`}>
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              {isSubmitting ? '🚀 Deploying to Stellar...' : '📋 Program Summary'}
+            </h2>
+          </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm opacity-90">
-            <div><p className="text-white/70">Budget</p><p className="font-medium">{budget?.toLocaleString()} USDC</p></div>
-            <div><p className="text-white/70">Radius</p><p className="font-medium">{formatRadius(radius)}</p></div>
-            <div className="col-span-2"><p className="text-white/70">Center</p><p className="font-medium">{crisisCenter[0].toFixed(4)}, {crisisCenter[1].toFixed(4)}</p></div>
+          <div className="p-6 space-y-8">
+            {isSubmitting ? (
+              <div className="relative">
+                <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-gray-100 -z-0" />
+                <div className="space-y-8 relative z-10">
+                  <div className="flex items-start gap-4">
+                    <StepIcon status={txStep === 'approving' ? 'loading' : (txStep === 'creating' || txStep === 'success' ? 'complete' : 'pending')} />
+                    <div>
+                      <p className={`font-bold ${txStep === 'approving' ? 'text-primary' : 'text-gray-900'}`}>1. Token Authorization</p>
+                      <p className="text-xs text-gray-500 mt-1">Granting permission to move <span className="font-mono font-bold text-gray-700">{budget} USDC</span>.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <StepIcon status={txStep === 'creating' ? 'loading' : (txStep === 'success' ? 'complete' : 'pending')} />
+                    <div>
+                      <p className={`font-bold ${txStep === 'creating' ? 'text-primary' : 'text-gray-900'}`}>2. Smart Contract Injection</p>
+                      <p className="text-xs text-gray-500 mt-1">Broadcasting <span className="font-bold text-gray-700">{aidTypeOptions.find(o => o.value === aidType)?.label}</span> to Soroban.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <StepIcon status={txStep === 'success' ? 'complete' : 'pending'} />
+                    <div>
+                      <p className={`font-bold ${txStep === 'success' ? 'text-green-600' : 'text-gray-400'}`}>3. Finalizing Ledger Entry</p>
+                      <p className="text-xs text-gray-400 mt-1">Syncing your dashboard with the global state.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Total Funding</p>
+                  <p className="text-xl font-bold text-primary">{budget?.toLocaleString() || 0} USDC</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Target Reach</p>
+                  <p className="text-xl font-bold text-gray-900">{estimatedBeneficiaries.toLocaleString()} People</p>
+                </div>
+                <div className="col-span-2 p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center gap-3">
+                  <div className="text-xl">📍</div>
+                  <div>
+                    <p className="text-xs font-bold text-blue-800">{regionOptions.find(r => r.value === targetRegion)?.label}</p>
+                    <p className="text-[10px] text-blue-600 uppercase">Selected Operation Zone</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => navigate('/donor/dashboard')}>Cancel</Button>
-          <Button type="submit" variant="primary" loading={isSubmitting}>Deploy Smart Contract</Button>
+          <Button 
+            type="submit" 
+            variant="primary" 
+            loading={isSubmitting}
+            disabled={isSubmitting || !!Object.keys(errors).length}
+          >
+            Deploy Smart Contract
+          </Button>
         </div>
       </form>
     </div>

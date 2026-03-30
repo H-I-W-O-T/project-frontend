@@ -8,6 +8,7 @@ export interface CardProps {
   header?: ReactNode;
   footer?: ReactNode;
   hoverable?: boolean;
+  onClick?: () => void;
 }
 
 export const Card = ({
@@ -17,6 +18,7 @@ export const Card = ({
   padding = 'md',
   header,
   footer,
+  onClick, 
   hoverable = false,
 }: CardProps) => {
   const variantStyles = {
@@ -42,7 +44,7 @@ export const Card = ({
   const footerStyles = variant === 'gradient' ? 'border-t border-white/20' : 'border-t border-gray-200';
 
   return (
-    <div className={`rounded-xl overflow-hidden ${variantStyles[variant]} ${hoverStyles} ${className}`}>
+    <div className={`rounded-xl overflow-hidden ${variantStyles[variant]} ${hoverStyles} ${className}`} onClick={onClick}>
       {header && (
         <div className={`${paddingStyles[padding]} ${headerStyles}`}>
           {header}

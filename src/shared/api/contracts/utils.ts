@@ -1,4 +1,4 @@
-import { scValToNative, nativeToScVal, xdr } from "@stellar/stellar-sdk";
+import { scValToNative, nativeToScVal } from "@stellar/stellar-sdk";
 
 export const scAddress = (addr: string) => {
   return nativeToScVal(addr, { type: "address" });
@@ -9,6 +9,9 @@ export const scString = (val: string) =>
 
 export const scU32 = (val: number) =>
   nativeToScVal(Math.floor(val), { type: "u32" });
+
+export const scI32 = (val: number) => 
+  nativeToScVal(Math.floor(val), { type: "i32" });
 
 // Use BigInt for u64 and i128 to prevent overflow/type errors
 export const scU64 = (val: number | bigint) =>

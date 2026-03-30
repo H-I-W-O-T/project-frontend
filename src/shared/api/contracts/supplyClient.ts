@@ -1,6 +1,7 @@
 import { CONTRACTS } from "./config";
-import { scString, scU32, scAddress } from "./utils";
+import { scString, scU32, scAddress, scI32 } from "./utils";
 import { hexToBytes32 } from "./encoder";
+import { xdr } from "@stellar/stellar-sdk";
 
 export const supplyClient = (wallet: any) => {
   const contractId = CONTRACTS.SUPPLY;
@@ -29,13 +30,13 @@ export const supplyClient = (wallet: any) => {
       });
     },
 
-    async getBatchHistory(batchId: string) {
+    async getBatchHistory(batchId: string | Uint8Array) {
+      const bytes = hexToBytes32(batchId);
+      
       return wallet.queryContract({
-        contractId,
+        contractId: CONTRACTS.SUPPLY,
         method: "get_batch_history",
-        args: [
-          hexToBytes32(batchId),
-        ],
+        args: [xdr.ScVal.scvBytes(bytes as any)], 
       });
     },
 
@@ -45,6 +46,35 @@ export const supplyClient = (wallet: any) => {
         method: "get_batch",
         args: [hexToBytes32(batchId)],
       });
-    }
+    },
+
+    async recordDamage(custodian: string, batchId: string, quantity: number, lat: number, lng: number, notes: string) {
+      return wallet.callContract({
+        contractId,
+        method: "record_damage",
+        args: [
+          scAddress(custodian),
+          hexToBytes32(batchId),
+          scU32(quantity),
+          // Soroban Tuple for location (i32, i32)
+          { tag: 'Tuple', values: [scI32(Math.round(lat * 1000000)), scI32(Math.round(lng * 1000000))] },
+          scString(notes),
+        ],
+      });
+    },
+
+    async transferCustody(sender: string, batchId: string, nextCustodian: string, lat: number, lng: number, notes: string) {
+      return wallet.callContract({
+        contractId,
+        method: "transfer_custody",
+        args: [
+          scAddress(sender),
+          hexToBytes32(batchId),
+          scAddress(nextCustodian),
+          { tag: 'Tuple', values: [scI32(Math.round(lat * 1000000)), scI32(Math.round(lng * 1000000))] },
+          scString(notes),
+        ],
+      });
+    },
   };
 };

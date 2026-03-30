@@ -13,6 +13,7 @@ import {
   History,
   WifiOff,
   Scan,
+  LocateIcon,
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,7 +34,8 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
   const donorNavItems: NavItem[] = [
     { path: '/donor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/donor/fund', icon: PlusCircle, label: 'Fund Program' },
-    { path: '/donor/shipments', icon: Truck, label: 'Track Shipments' },
+    { path: '/donor/supply', icon: Truck, label: "Supply Management"},
+    { path: '/donor/shipments', icon: LocateIcon, label: 'Track Shipments' },
     { path: '/donor/impact', icon: BarChart3, label: 'Impact Reports' },
     { path: '/donor/verify', icon: ShieldCheck, label: 'Verify Proofs' },
   ];

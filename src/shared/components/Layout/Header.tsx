@@ -31,6 +31,8 @@ export const Header = ({ userType, userName, userAvatar, walletAddress, onMenuCl
   const truncatedAddress = walletAddress 
     ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
     : '';
+
+  console.log(truncatedAddress);
     
   return (
     <header className="bg-gradient-brand text-white shadow-lg sticky top-0 z-40">

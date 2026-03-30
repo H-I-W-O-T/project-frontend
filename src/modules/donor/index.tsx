@@ -5,6 +5,7 @@ import { TrackShipments } from './pages/TrackShipments';
 import { ImpactReports } from './pages/ImpactReports';
 import { VerifyProofs } from './pages/VerifyProofs';
 import { Settings } from './pages/Settings';
+import { SupplyManagement } from './pages/SupplyManagement';
 
 export const DonorModule = () => {
   return (
@@ -15,6 +16,7 @@ export const DonorModule = () => {
       <Route path="impact" element={<ImpactReports />} />
       <Route path="verify" element={<VerifyProofs />} />
       <Route path="settings" element={<Settings />} />
+      <Route path="supply" element={<SupplyManagement />} />
       <Route index element={<Dashboard />} />
     </Routes>
   );
