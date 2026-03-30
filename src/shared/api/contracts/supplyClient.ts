@@ -21,20 +21,26 @@ export const supplyClient = (wallet: any) => {
       });
     },
 
-    // 2. ✅ ADD THIS: Get History Method
+    async getAllBatches() {
+      return wallet.queryContract({
+        contractId,
+        method: "get_all_batches",
+        args: [],
+      });
+    },
+
     async getBatchHistory(batchId: string) {
-      return wallet.callContract({
+      return wallet.queryContract({
         contractId,
         method: "get_batch_history",
         args: [
-          hexToBytes32(batchId), // Convert the hex string to 32-byte Uint8Array
+          hexToBytes32(batchId),
         ],
       });
     },
 
-    // 3. Optional: Add a quick getter for the current batch state
     async getBatch(batchId: string) {
-      return wallet.callContract({
+      return wallet.queryContract({
         contractId,
         method: "get_batch",
         args: [hexToBytes32(batchId)],

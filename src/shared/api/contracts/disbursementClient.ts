@@ -1,4 +1,4 @@
-import { nativeToScVal, xdr } from "@stellar/stellar-sdk"; // Fixed import
+import { nativeToScVal, xdr, Address } from "@stellar/stellar-sdk"; // Fixed import
 import { CONTRACTS } from "./config";
 
 // Helper to ensure the Location object is explicitly tagged as i128
@@ -100,6 +100,33 @@ export const disbursementClient = (wallet: any) => {
         method: "get_remaining_budget",
         args: [scBytes32(programId)],
       });
-    }
+    },
+
+    async getAllPrograms() {
+      return wallet.queryContract({
+        contractId,
+        method: "get_all_programs",
+        args: [],
+      });
+    },
+
+    // New: Fetch programs specific to the logged-in donor
+    async getProgramsByDonor(donorAddress: string) {
+      return wallet.queryContract({
+        contractId,
+        method: "get_programs_by_donor",
+        args: [Address.fromString(donorAddress).toScVal()],
+      });
+    },
+
+    // New: Fetch programs based on current GPS (for Agents)
+    async getActiveProgramsAtLocation(lat: bigint, lon: bigint) {
+      const locationScVal = packLocationToScVal({ lat, lon });
+      return wallet.queryContract({
+        contractId,
+        method: "get_active_programs_at_location",
+        args: [locationScVal],
+      });
+    },
   };
 };
