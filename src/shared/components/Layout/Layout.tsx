@@ -3,6 +3,7 @@ import { useOutlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
+import { useStellar } from '../../../contexts/StellarContext';
 
 interface LayoutProps {
   userType: 'donor' | 'manager' | 'agent';
@@ -38,7 +39,7 @@ export const Layout = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header now receives all required props including walletAddress */}
       <Header
         userType={userType}
@@ -49,7 +50,7 @@ export const Layout = ({
         onLogout={handleLogout}
       />
 
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 overflow-hidden relative">
         <Sidebar
           userType={userType}
           isOpen={isSidebarOpen}
@@ -64,15 +65,15 @@ export const Layout = ({
           />
         )}
 
-        <main className="flex-1 overflow-x-auto">
-          <div className="container-padding py-6 max-w-7xl mx-auto">
+        <main className="flex-1 h-full overflow-y-auto flex flex-col">
+          <div className="flex-1 container-padding py-6 max-w-7xl mx-auto w-full">
             {/* outlet renders the children routes (DonorModule, AgentModule, etc.) */}
             {outlet}
           </div>
+
+          {showFooter && <Footer />}
         </main>
       </div>
-
-      {showFooter && <Footer />}
     </div>
   );
 };

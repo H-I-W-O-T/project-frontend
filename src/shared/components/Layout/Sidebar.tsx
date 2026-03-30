@@ -71,7 +71,7 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
             className={({ isActive }) =>
               `flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group ${
                 isActive
-                  ? 'bg-primary-cyan text-primary-dark shadow-sm'
+                  ? 'bg-primary text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-primary-dark'
               }`
             }
@@ -103,7 +103,7 @@ export const Sidebar = ({ userType, isOpen, onClose }: SidebarProps) => {
   return (
     <>
       {/* Desktop View: Always Visible */}
-      <div className="hidden lg:block h-full">
+      <div className="hidden lg:block h-full sticky top-0">
         {sidebarContent}
       </div>
 
