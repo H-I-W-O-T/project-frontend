@@ -34,7 +34,9 @@ export const usePrograms = () => {
       // Mock programs for testing
       const mockPrograms: AidProgram[] = [
         {
-          programId: "6a7bb77f7641c524a7158dc3a1114aac1c75f48b7f67b5077d0e0bbf3a63674f",
+          // programId: "6a7bb77f7641c524a7158dc3a1114aac1c75f48b7f67b5077d0e0bbf3a63674f",
+          programId: "aa79ee17faa069cabb0fb198e984f4ac400416be341e5df99d595d0e577073dc",
+
           donor: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
           manager: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
           token: "0x2222222222222222222222222222222222222222",
@@ -53,7 +55,9 @@ export const usePrograms = () => {
           name: "Emergency Food Aid Program"
         },
         {
-          programId: "c8fd1a2114add5080b97c70bdea6652b869cb97e06ce64275a3295a7fc6423fb",
+          // programId: "c8fd1a2114add5080b97c70bdea6652b869cb97e06ce64275a3295a7fc6423fb",
+          programId: "469df37a40a0e982a3418eba7663ae7ad57c55861d57222e6aef27fb81f603d5",
+
           donor: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
           manager: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
           token: "0x2222222222222222222222222222222222222222",
