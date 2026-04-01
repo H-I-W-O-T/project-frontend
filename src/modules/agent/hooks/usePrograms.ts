@@ -35,12 +35,12 @@ export const usePrograms = () => {
       const mockPrograms: AidProgram[] = [
         {
           programId: "aa79ee17faa069cabb0fb198e984f4ac400416be341e5df99d595d0e577073dc",
-          donor: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-          manager: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+          donor: "UN",
+          manager: "UB",
           token: "0x2222222222222222222222222222222222222222",
-          totalBudget: "1000000",
-          remainingBudget: "750000",
-          amountPerPerson: "100",
+          totalBudget: "1",
+          remainingBudget: "1",
+          amountPerPerson: "1",
           frequencyDays: 30,
           isActive: true,
           geofenceVertices: [
@@ -54,12 +54,12 @@ export const usePrograms = () => {
         },
         {
           programId: "469df37a40a0e982a3418eba7663ae7ad57c55861d57222e6aef27fb81f603d5",
-          donor: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
-          manager: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+          donor: "UB",
+          manager: "UB",
           token: "0x2222222222222222222222222222222222222222",
-          totalBudget: "500000",
-          remainingBudget: "500000",
-          amountPerPerson: "50",
+          totalBudget: "5",
+          remainingBudget: "5",
+          amountPerPerson: "1",
           frequencyDays: 14,
           isActive: true,
           geofenceVertices: [
