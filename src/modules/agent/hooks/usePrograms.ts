@@ -34,13 +34,13 @@ export const usePrograms = () => {
       // Mock programs for testing
       const mockPrograms: AidProgram[] = [
         {
-          programId: "aa79ee17faa069cabb0fb198e984f4ac400416be341e5df99d595d0e577073dc",
-          donor: "UN",
-          manager: "UB",
+          programId: "6a7bb77f7641c524a7158dc3a1114aac1c75f48b7f67b5077d0e0bbf3a63674f",
+          donor: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+          manager: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
           token: "0x2222222222222222222222222222222222222222",
-          totalBudget: "1",
-          remainingBudget: "1",
-          amountPerPerson: "1",
+          totalBudget: "1000000",
+          remainingBudget: "750000",
+          amountPerPerson: "100",
           frequencyDays: 30,
           isActive: true,
           geofenceVertices: [
@@ -50,16 +50,16 @@ export const usePrograms = () => {
           ],
           startTime: new Date().toISOString(),
           endTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-          name: "Program aa79"
+          name: "Emergency Food Aid Program"
         },
         {
-          programId: "469df37a40a0e982a3418eba7663ae7ad57c55861d57222e6aef27fb81f603d5",
-          donor: "UB",
-          manager: "UB",
+          programId: "c8fd1a2114add5080b97c70bdea6652b869cb97e06ce64275a3295a7fc6423fb",
+          donor: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
+          manager: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
           token: "0x2222222222222222222222222222222222222222",
-          totalBudget: "5",
-          remainingBudget: "5",
-          amountPerPerson: "1",
+          totalBudget: "500000",
+          remainingBudget: "500000",
+          amountPerPerson: "50",
           frequencyDays: 14,
           isActive: true,
           geofenceVertices: [
@@ -69,7 +69,7 @@ export const usePrograms = () => {
           ],
           startTime: new Date().toISOString(),
           endTime: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
-          name: "program 469d"
+          name: "Shelter Support Program"
         }
       ];
       
